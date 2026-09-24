@@ -106,6 +106,7 @@ interface AppContextType {
   // Authentication Actions
   signUpWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   signInWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }>;
+  signInWithGoogle: () => Promise<void>;
 
   // Notifications
   markNotificationAsRead: (id: string) => void;
@@ -283,6 +284,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, isNewUser: res.isNewUser, role: res.role };
   };
 
+  const signInWithGoogle = async () => {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) {
+        console.error('Google Sign In error:', error.message);
+      }
+    } else {
+      loginWithEmail('patient@example.com');
+    }
+  };
+
   const login = (role: UserRole, id?: string) => {
     setActiveRoleState(role);
     if (role === 'patient' && id) setActivePatientIdState(id);
@@ -297,9 +314,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthenticated(false);
   };
 
-  // Initial fetch from Supabase if configured
+  // Initial fetch and OAuth listener from Supabase if configured
   useEffect(() => {
     if (isSupabaseConfigured) {
+      // Listen for auth state changes (OAuth Redirects)
+      const { data: authSubscription } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user?.email) {
+          loginWithEmail(session.user.email);
+        }
+      });
+
       // Fetch Patients
       supabase
         .from('patients')
@@ -1087,6 +1111,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginWithEmail,
         signUpWithSupabase,
         signInWithSupabase,
+        signInWithGoogle,
         login,
         logout,
         createPatientAccount,
