@@ -27,6 +27,8 @@ import {
 export const AuthPage: React.FC = () => {
   const {
     loginWithEmail,
+    signUpWithSupabase,
+    signInWithSupabase,
     login,
     patients,
     nurses,
@@ -38,12 +40,16 @@ export const AuthPage: React.FC = () => {
 
   // Screen State: 'login' | 'role_choice' | 'patient_form'
   const [screen, setScreen] = useState<'login' | 'role_choice' | 'patient_form'>('login');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
 
-  // Login form fields
+  // Login & Sign Up form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Patient Sign Up fields
   const [fullName, setFullName] = useState('');
@@ -59,20 +65,47 @@ export const AuthPage: React.FC = () => {
   // Selected quick demo account
   const [selectedDemoEmail, setSelectedDemoEmail] = useState<string>('');
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
 
     const targetEmail = selectedDemoEmail || email;
     if (!targetEmail.trim()) {
-      setErrorMsg('Please enter your Email Address or Phone Number.');
+      setErrorMsg('Please enter your Email Address.');
       return;
     }
 
-    const res = loginWithEmail(targetEmail, password);
+    if (authMode === 'signup') {
+      if (password && password.length < 6) {
+        setErrorMsg('Password must be at least 6 characters long.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setErrorMsg('Passwords do not match.');
+        return;
+      }
+
+      setIsLoading(true);
+      const res = await signUpWithSupabase(targetEmail, password);
+      setIsLoading(false);
+
+      if (!res.success) {
+        setErrorMsg(res.error || 'Sign up failed.');
+        return;
+      }
+
+      setSuccessMsg('Account created successfully in Supabase!');
+      setScreen('role_choice');
+      return;
+    }
+
+    // Sign In Mode
+    setIsLoading(true);
+    const res = await signInWithSupabase(targetEmail, password);
+    setIsLoading(false);
 
     if (res.isNewUser) {
-      // New user -> ask "Are you a Nurse or a Patient?"
       setScreen('role_choice');
     }
   };
@@ -205,13 +238,51 @@ export const AuthPage: React.FC = () => {
           {/* Right Column: Pure White Sign-In / Onboarding Card */}
           <div className="lg:col-span-6 w-full max-w-md mx-auto">
             <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xl">
-              {/* SCREEN 1: SINGLE UNIVERSAL SIGN IN */}
+              {/* SCREEN 1: SIGN IN / SIGN UP TABS */}
               {screen === 'login' && (
                 <div>
-                  <div className="mb-5">
-                    <h2 className="text-xl font-bold text-slate-900">Sign In to CuraHome</h2>
+                  {/* Mode Selector Tabs */}
+                  <div className="flex items-center p-1 bg-slate-100 rounded-xl mb-5 border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('signin');
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                        authMode === 'signin'
+                          ? 'bg-white text-teal-900 shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('signup');
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                        authMode === 'signup'
+                          ? 'bg-white text-teal-900 shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Create Account (Sign Up)
+                    </button>
+                  </div>
+
+                  <div className="mb-4">
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {authMode === 'signin' ? 'Sign In to CuraHome' : 'Create New Account'}
+                    </h2>
                     <p className="text-xs text-slate-500 mt-1">
-                      Enter your email or phone number to sign in or create an account.
+                      {authMode === 'signin'
+                        ? 'Enter your email & password to access your healthcare portal.'
+                        : 'Sign up to connect with healthcare services or register as a nurse.'}
                     </p>
                   </div>
 
@@ -222,22 +293,29 @@ export const AuthPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Single Form */}
-                  <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  {successMsg && (
+                    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                      <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                      <span>{successMsg}</span>
+                    </div>
+                  )}
+
+                  {/* Auth Form */}
+                  <form onSubmit={handleAuthSubmit} className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Email Address or Mobile Number
+                        Email Address
                       </label>
                       <div className="relative">
                         <input
-                          type="text"
+                          type="email"
                           required
                           value={selectedDemoEmail || email}
                           onChange={(e) => {
                             setSelectedDemoEmail('');
                             setEmail(e.target.value);
                           }}
-                          placeholder="e.g. name@example.com or +1 555-000-0000"
+                          placeholder="name@example.com"
                           className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                         />
                         <Mail size={16} className="absolute left-3 top-3 text-slate-400" />
@@ -267,6 +345,24 @@ export const AuthPage: React.FC = () => {
                       </div>
                     </div>
 
+                    {authMode === 'signup' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Confirm Password
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full pl-9 pr-10 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                          />
+                          <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Admin Email Highlight Callout */}
                     {isCurrentEmailAdmin && (
                       <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-900 flex items-center gap-2">
@@ -279,17 +375,24 @@ export const AuthPage: React.FC = () => {
 
                     <button
                       type="submit"
-                      className="w-full py-3 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
+                      disabled={isLoading}
+                      className="w-full py-3 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
                     >
-                      <span>Sign In / Continue</span>
-                      <ArrowRight size={16} />
+                      {isLoading ? (
+                        <span>Connecting to Supabase...</span>
+                      ) : (
+                        <>
+                          <span>{authMode === 'signin' ? 'Sign In / Continue' : 'Sign Up Account'}</span>
+                          <ArrowRight size={16} />
+                        </>
+                      )}
                     </button>
                   </form>
 
                   {/* Demo Quick Sign-In Buttons */}
                   <div className="mt-6 pt-5 border-t border-slate-200">
                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2.5">
-                      Quick Demo Accounts:
+                      Quick Demo Sign-In:
                     </span>
                     <div className="grid grid-cols-1 gap-2">
                       <button
@@ -343,16 +446,6 @@ export const AuthPage: React.FC = () => {
                         <span className="text-[10px] text-amber-800 font-bold">Admin Login →</span>
                       </button>
                     </div>
-                  </div>
-
-                  <div className="mt-5 text-center">
-                    <button
-                      type="button"
-                      onClick={() => setScreen('role_choice')}
-                      className="text-xs font-bold text-teal-700 hover:text-teal-900 underline"
-                    >
-                      New user? Register as Patient or Nurse
-                    </button>
                   </div>
                 </div>
               )}

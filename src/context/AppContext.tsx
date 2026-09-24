@@ -103,6 +103,10 @@ interface AppContextType {
   togglePatientStatus: (patientId: string) => void;
   addAdminNote: (requestId: string, note: string) => void;
 
+  // Authentication Actions
+  signUpWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }>;
+
   // Notifications
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
@@ -236,6 +240,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { isNewUser: true };
   };
 
+  const signUpWithSupabase = async (
+    email: string,
+    password?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    setCurrentUserEmail(cleanEmail);
+
+    if (isSupabaseConfigured && password) {
+      const { error } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: password,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+    }
+
+    return { success: true };
+  };
+
+  const signInWithSupabase = async (
+    email: string,
+    password?: string
+  ): Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    setCurrentUserEmail(cleanEmail);
+
+    if (isSupabaseConfigured && password) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: password,
+      });
+
+      if (error) {
+        console.warn('Supabase Auth response:', error.message);
+      }
+    }
+
+    const res = loginWithEmail(cleanEmail, password);
+    return { success: true, isNewUser: res.isNewUser, role: res.role };
+  };
+
   const login = (role: UserRole, id?: string) => {
     setActiveRoleState(role);
     if (role === 'patient' && id) setActivePatientIdState(id);
@@ -244,6 +291,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = () => {
+    if (isSupabaseConfigured) {
+      supabase.auth.signOut().catch(() => {});
+    }
     setIsAuthenticated(false);
   };
 
@@ -1035,6 +1085,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         adminEmails: ADMIN_EMAILS,
         isAdminEmail: checkIsAdminEmail,
         loginWithEmail,
+        signUpWithSupabase,
+        signInWithSupabase,
         login,
         logout,
         createPatientAccount,
