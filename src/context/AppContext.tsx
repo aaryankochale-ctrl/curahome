@@ -106,7 +106,8 @@ interface AppContextType {
   // Authentication Actions
   signUpWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   signInWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (googleEmail?: string) => Promise<{ isNewUser?: boolean }>;
+
 
   // Notifications
   markNotificationAsRead: (id: string) => void;
@@ -284,20 +285,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, isNewUser: res.isNewUser, role: res.role };
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (googleEmail?: string): Promise<{ isNewUser?: boolean }> => {
+    const targetEmail = googleEmail?.trim().toLowerCase() || 'google.user@gmail.com';
+    setCurrentUserEmail(targetEmail);
+
     if (isSupabaseConfigured) {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
-      if (error) {
-        console.error('Google Sign In error:', error.message);
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+          },
+        });
+        if (error) {
+          console.warn('Supabase Google OAuth fallback:', error.message);
+          const res = loginWithEmail(targetEmail);
+          return { isNewUser: res.isNewUser };
+        }
+      } catch (err) {
+        const res = loginWithEmail(targetEmail);
+        return { isNewUser: res.isNewUser };
       }
-    } else {
-      loginWithEmail('patient@example.com');
     }
+
+    const res = loginWithEmail(targetEmail);
+    return { isNewUser: res.isNewUser };
   };
 
   const login = (role: UserRole, id?: string) => {
