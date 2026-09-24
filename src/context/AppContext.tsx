@@ -106,7 +106,7 @@ interface AppContextType {
   // Authentication Actions
   signUpWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   signInWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }>;
-  signInWithGoogle: (googleEmail?: string) => Promise<{ isNewUser?: boolean }>;
+  signInWithGoogle: () => Promise<void>;
 
 
   // Notifications
@@ -285,31 +285,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, isNewUser: res.isNewUser, role: res.role };
   };
 
-  const signInWithGoogle = async (googleEmail?: string): Promise<{ isNewUser?: boolean }> => {
-    const targetEmail = googleEmail?.trim().toLowerCase() || 'google.user@gmail.com';
-    setCurrentUserEmail(targetEmail);
-
+  const signInWithGoogle = async () => {
     if (isSupabaseConfigured) {
-      try {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: window.location.origin,
-          },
-        });
-        if (error) {
-          console.warn('Supabase Google OAuth fallback:', error.message);
-          const res = loginWithEmail(targetEmail);
-          return { isNewUser: res.isNewUser };
-        }
-      } catch (err) {
-        const res = loginWithEmail(targetEmail);
-        return { isNewUser: res.isNewUser };
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) {
+        alert(
+          `Google OAuth Setup Required in Supabase:\n\n${error.message}\n\nTo enable the real Google login screen, paste your Google Client ID and Secret in Supabase Dashboard -> Authentication -> Providers -> Google.`
+        );
       }
+    } else {
+      loginWithEmail('google.user@gmail.com');
     }
-
-    const res = loginWithEmail(targetEmail);
-    return { isNewUser: res.isNewUser };
   };
 
   const login = (role: UserRole, id?: string) => {
