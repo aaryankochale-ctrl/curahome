@@ -106,7 +106,8 @@ interface AppContextType {
   // Authentication Actions
   signUpWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   signInWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (email?: string, name?: string) => Promise<void>;
+  loginWithGoogleUser: (email: string, fullName?: string) => { isNewUser: boolean; role?: UserRole };
 
 
   // Notifications
@@ -285,6 +286,93 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, isNewUser: res.isNewUser, role: res.role };
   };
 
+  const loginWithGoogleUser = (email: string, fullName?: string): { isNewUser: boolean; role?: UserRole } => {
+    const cleanEmail = email.trim().toLowerCase();
+    setCurrentUserEmail(cleanEmail);
+
+    // 1. Check if Admin Email
+    if (checkIsAdminEmail(cleanEmail)) {
+      setActiveRoleState('admin');
+      setIsAuthenticated(true);
+      return { isNewUser: false, role: 'admin' };
+    }
+
+    // 2. Check if Patient Email
+    const patientMatch = patients.find((p) => p.email.toLowerCase() === cleanEmail);
+    if (patientMatch) {
+      setActiveRoleState('patient');
+      setActivePatientIdState(patientMatch.id);
+      setIsAuthenticated(true);
+      return { isNewUser: false, role: 'patient' };
+    }
+
+    // 3. Check if Nurse Email
+    const nurseMatch = nurses.find((n) => n.email.toLowerCase() === cleanEmail);
+    if (nurseMatch) {
+      setActiveRoleState('nurse');
+      setActiveNurseIdState(nurseMatch.id);
+      setIsAuthenticated(true);
+      return { isNewUser: false, role: 'nurse' };
+    }
+
+    // 4. New Google User -> Create profile automatically as Patient and log in immediately!
+    const rawName = fullName || cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ');
+    const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    const newPatient: PatientProfile = {
+      id: `pat-g-${Date.now()}`,
+      fullName: formattedName,
+      email: cleanEmail,
+      phone: '+1 (555) 321-9876',
+      age: 35,
+      gender: 'Female',
+      address: '101 Healthcare Way',
+      city: 'Metro City',
+      districtZone: 'North District',
+      emergencyContact: {
+        fullName: 'Emergency Contact',
+        phone: '+1 (555) 999-0000',
+        relationship: 'Family',
+      },
+      medicalInfo: {
+        bloodGroup: 'O+',
+        allergies: [],
+        chronicConditions: [],
+        currentMedications: [],
+      },
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    };
+
+    setPatients((prev) => [newPatient, ...prev]);
+    setActivePatientIdState(newPatient.id);
+    setActiveRoleState('patient');
+    setIsAuthenticated(true);
+
+    if (isSupabaseConfigured) {
+      supabase.from('patients').insert([
+        {
+          id: newPatient.id,
+          full_name: newPatient.fullName,
+          email: newPatient.email,
+          phone: newPatient.phone,
+          age: newPatient.age,
+          gender: newPatient.gender,
+          address: newPatient.address,
+          city: newPatient.city,
+          district_zone: newPatient.districtZone,
+          emergency_contact: newPatient.emergencyContact,
+          medical_info: newPatient.medicalInfo,
+          status: newPatient.status,
+          created_at: newPatient.createdAt,
+        },
+      ]).then(({ error }) => {
+        if (error) console.error('Supabase error saving Google patient:', error.message);
+      });
+    }
+
+    return { isNewUser: true, role: 'patient' };
+  };
+
   const signInWithGoogle = async () => {
     if (isSupabaseConfigured) {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -294,12 +382,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
       });
       if (error) {
-        alert(
-          `Google OAuth Setup Required in Supabase:\n\n${error.message}\n\nTo enable the real Google login screen, paste your Google Client ID and Secret in Supabase Dashboard -> Authentication -> Providers -> Google.`
-        );
+        console.error('Supabase Google OAuth Error:', error.message);
       }
     } else {
-      loginWithEmail('google.user@gmail.com');
+      loginWithGoogleUser('kochaleaaryan@gmail.com');
     }
   };
 
@@ -323,7 +409,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Listen for auth state changes (OAuth Redirects)
       const { data: authSubscription } = supabase.auth.onAuthStateChange((event, session) => {
         if (session?.user?.email) {
-          loginWithEmail(session.user.email);
+          loginWithGoogleUser(
+            session.user.email,
+            session.user.user_metadata?.full_name || session.user.user_metadata?.name
+          );
         }
       });
 
@@ -1115,6 +1204,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         signUpWithSupabase,
         signInWithSupabase,
         signInWithGoogle,
+        loginWithGoogleUser,
         login,
         logout,
         createPatientAccount,

@@ -60,7 +60,7 @@ export const AuthPage: React.FC = () => {
   const [address, setAddress] = useState('');
   const [districtZone, setDistrictZone] = useState('North District');
 
-  // Modal for nurse application
+  // Modals
   const [isNurseModalOpen, setIsNurseModalOpen] = useState(false);
 
   // Selected quick demo account
