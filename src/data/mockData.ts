@@ -3,8 +3,8 @@ import { PatientProfile, NurseProfile, ServiceRequest, NotificationItem, Service
 export const INITIAL_PATIENTS: PatientProfile[] = [
   {
     id: 'pat-1',
-    fullName: 'Eleanor Vance',
-    email: 'eleanor.vance@example.com',
+    fullName: 'Sunita Deshmukh',
+    email: 'sunita.deshmukh@example.com',
     phone: '+91 98201 23456',
     age: 72,
     gender: 'Female',
@@ -12,7 +12,7 @@ export const INITIAL_PATIENTS: PatientProfile[] = [
     city: 'Mumbai',
     districtZone: 'Bandra & Suburbs (Mumbai)',
     emergencyContact: {
-      fullName: 'Robert Vance',
+      fullName: 'Ramesh Deshmukh',
       phone: '+91 98201 99887',
       relationship: 'Son',
     },
@@ -28,8 +28,8 @@ export const INITIAL_PATIENTS: PatientProfile[] = [
   },
   {
     id: 'pat-2',
-    fullName: 'Marcus Bell',
-    email: 'marcus.bell@example.com',
+    fullName: 'Rajesh Kulkarni',
+    email: 'rajesh.kulkarni@example.com',
     phone: '+91 98765 43210',
     age: 46,
     gender: 'Male',
@@ -37,7 +37,7 @@ export const INITIAL_PATIENTS: PatientProfile[] = [
     city: 'Bengaluru',
     districtZone: 'Indiranagar & East (Bengaluru)',
     emergencyContact: {
-      fullName: 'Clara Bell',
+      fullName: 'Kavita Kulkarni',
       phone: '+91 98765 99000',
       relationship: 'Spouse',
     },
@@ -81,8 +81,8 @@ export const INITIAL_PATIENTS: PatientProfile[] = [
 export const INITIAL_NURSES: NurseProfile[] = [
   {
     id: 'nurse-1',
-    fullName: 'Sarah Jenkins, RN',
-    email: 'sarah.jenkins@curahome.health',
+    fullName: 'Sunita Sharma, RN',
+    email: 'sunita.sharma@curahome.health',
     phone: '+91 98190 44209',
     dob: '1989-04-14',
     address: '730 SV Road, Khar West',
@@ -104,7 +104,7 @@ export const INITIAL_NURSES: NurseProfile[] = [
     verificationNotes: 'Board credentials verified against Maharashtra Nursing Council Registry. Primary source verification cleared.',
     verifiedAt: '2026-07-15T10:00:00Z',
     emergencyContact: {
-      fullName: 'Mark Jenkins',
+      fullName: 'Alok Sharma',
       phone: '+91 98190 44299',
       relationship: 'Spouse',
     },
@@ -140,8 +140,8 @@ export const INITIAL_NURSES: NurseProfile[] = [
   },
   {
     id: 'nurse-2',
-    fullName: 'David Chen, BSN',
-    email: 'david.chen@curahome.health',
+    fullName: 'Deepak Patel, BSN',
+    email: 'deepak.patel@curahome.health',
     phone: '+91 97690 89033',
     dob: '1992-09-22',
     address: '215 MG Road, Fort',
@@ -163,7 +163,7 @@ export const INITIAL_NURSES: NurseProfile[] = [
     verificationNotes: 'License active with zero disciplinary records. CPR/ACLS certified through 2027.',
     verifiedAt: '2026-08-01T15:20:00Z',
     emergencyContact: {
-      fullName: 'Linda Chen',
+      fullName: 'Neha Patel',
       phone: '+91 97690 89000',
       relationship: 'Sister',
     },
@@ -191,8 +191,8 @@ export const INITIAL_NURSES: NurseProfile[] = [
   },
   {
     id: 'nurse-3',
-    fullName: 'Elena Rostova, GNM',
-    email: 'elena.rostova@example.com',
+    fullName: 'Ananya Sen, GNM',
+    email: 'ananya.sen@example.com',
     phone: '+91 99201 32177',
     dob: '1994-11-05',
     address: '512 FC Road, Kothrud',
@@ -213,7 +213,7 @@ export const INITIAL_NURSES: NurseProfile[] = [
     verificationStatus: 'pending_verification',
     verificationNotes: 'Registration documents submitted. Awaiting Admin verification check.',
     emergencyContact: {
-      fullName: 'Viktor Rostov',
+      fullName: 'Sanjay Sen',
       phone: '+91 99201 32100',
       relationship: 'Father',
     },
@@ -249,8 +249,8 @@ export const INITIAL_NURSES: NurseProfile[] = [
   },
   {
     id: 'nurse-4',
-    fullName: 'Marcus Brody, ANM',
-    email: 'marcus.brody@example.com',
+    fullName: 'Manoj Kumar, ANM',
+    email: 'manoj.kumar@example.com',
     phone: '+91 98330 74488',
     dob: '1995-02-18',
     address: '99 Jubilee Hills Road No 36',
@@ -270,7 +270,7 @@ export const INITIAL_NURSES: NurseProfile[] = [
     },
     verificationStatus: 'pending_verification',
     emergencyContact: {
-      fullName: 'Hannah Brody',
+      fullName: 'Rekha Kumar',
       phone: '+91 98330 74499',
       relationship: 'Sister',
     },
@@ -294,7 +294,7 @@ export const INITIAL_REQUESTS: ServiceRequest[] = [
   {
     id: 'REQ-1001',
     patientId: 'pat-1',
-    patientName: 'Eleanor Vance',
+    patientName: 'Sunita Deshmukh',
     patientPhone: '+91 98201 23456',
     patientAge: 72,
     patientGender: 'Female',
@@ -312,7 +312,7 @@ export const INITIAL_REQUESTS: ServiceRequest[] = [
     documents: [
       {
         id: 'doc-req-1',
-        name: 'Hospital_Discharge_Summary_DrReynolds.pdf',
+        name: 'Hospital_Discharge_Summary_DrKulkarni.pdf',
         type: 'discharge_summary',
         uploadedAt: '2026-09-24T08:15:00Z',
         fileSize: '2.4 MB',
@@ -331,7 +331,7 @@ export const INITIAL_REQUESTS: ServiceRequest[] = [
   {
     id: 'REQ-1002',
     patientId: 'pat-2',
-    patientName: 'Marcus Bell',
+    patientName: 'Rajesh Kulkarni',
     patientPhone: '+91 98765 43210',
     patientAge: 46,
     patientGender: 'Male',
@@ -356,7 +356,7 @@ export const INITIAL_REQUESTS: ServiceRequest[] = [
     ],
     status: 'accepted',
     assignedNurseId: 'nurse-2',
-    assignedNurseName: 'David Chen, BSN',
+    assignedNurseName: 'Deepak Patel, BSN',
     assignedAt: '2026-09-24T09:00:00Z',
     acceptedAt: '2026-09-24T09:15:00Z',
     createdAt: '2026-09-23T18:30:00Z',
@@ -385,7 +385,7 @@ export const INITIAL_REQUESTS: ServiceRequest[] = [
   {
     id: 'REQ-1000',
     patientId: 'pat-1',
-    patientName: 'Eleanor Vance',
+    patientName: 'Sunita Deshmukh',
     patientPhone: '+91 98201 23456',
     patientAge: 72,
     patientGender: 'Female',
@@ -400,7 +400,7 @@ export const INITIAL_REQUESTS: ServiceRequest[] = [
     documents: [],
     status: 'completed',
     assignedNurseId: 'nurse-1',
-    assignedNurseName: 'Sarah Jenkins, RN',
+    assignedNurseName: 'Sunita Sharma, RN',
     assignedAt: '2026-09-19T14:00:00Z',
     acceptedAt: '2026-09-19T14:30:00Z',
     startedAt: '2026-09-20T08:30:00Z',
@@ -416,7 +416,7 @@ export const INITIAL_REQUESTS: ServiceRequest[] = [
     },
     patientFeedback: {
       rating: 5,
-      comment: 'Nurse Sarah was remarkably gentle, prompt, and thorough. She explained everything clearly to my son and made me feel completely secure.',
+      comment: 'Nurse Sunita was remarkably gentle, prompt, and thorough. She explained everything clearly to my son and made me feel completely secure.',
       submittedAt: '2026-09-20T11:00:00Z',
     },
     createdAt: '2026-09-18T10:00:00Z',
@@ -428,7 +428,7 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     id: 'notif-1',
     targetRole: 'admin',
     title: 'New Nurse Registration Awaiting Verification',
-    message: 'Nurse Elena Rostova (GNM, 5 yrs exp) submitted credentials & license docs. Review required.',
+    message: 'Nurse Ananya Sen (GNM, 5 yrs exp) submitted credentials & license docs. Review required.',
     type: 'warning',
     timestamp: '2026-09-22T16:26:00Z',
     read: false,
@@ -437,7 +437,7 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     id: 'notif-2',
     targetRole: 'admin',
     title: 'Urgent Home Care Request Submitted',
-    message: 'Eleanor Vance submitted an urgent post-surgery knee dressing request for Sept 25.',
+    message: 'Sunita Deshmukh submitted an urgent post-surgery knee dressing request for Sept 25.',
     type: 'alert',
     timestamp: '2026-09-24T08:21:00Z',
     read: false,
@@ -447,8 +447,8 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     id: 'notif-3',
     targetRole: 'nurse',
     targetUserId: 'nurse-2',
-    title: 'Assignment Confirmed: Marcus Bell',
-    message: 'You accepted home IV therapy visit for Marcus Bell on Sept 24, 02:00 PM.',
+    title: 'Assignment Confirmed: Rajesh Kulkarni',
+    message: 'You accepted home IV therapy visit for Rajesh Kulkarni on Sept 24, 02:00 PM.',
     type: 'success',
     timestamp: '2026-09-24T09:15:00Z',
     read: true,
