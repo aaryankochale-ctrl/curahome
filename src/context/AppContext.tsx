@@ -336,16 +336,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
       }
     } else {
-      if (
-        !checkIsAdminEmail(cleanEmail) &&
-        !patients.some((p) => p.email.toLowerCase() === cleanEmail) &&
-        !nurses.some((n) => n.email.toLowerCase() === cleanEmail)
-      ) {
-        return {
-          success: false,
-          error: 'Account not found. Please create an account to sign up.',
-        };
-      }
+      // In local mode, if email is not pre-seeded, treat as new user to allow account role setup
     }
 
     const res = loginWithEmail(cleanEmail, password);
