@@ -351,72 +351,7 @@ export const AuthPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Account Quick Options / Role Selectors */}
-                  {authMode === 'signin' && (
-                    <div className="mb-4 space-y-2">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                        Select Account Type to Sign In:
-                      </div>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEmail('admin@curahome.health');
-                            setPassword('password123');
-                          }}
-                          className={`p-2 rounded-lg border text-left transition-all ${
-                            email === 'admin@curahome.health'
-                              ? 'border-teal-600 bg-teal-50/70 text-teal-900 font-bold ring-1 ring-teal-600'
-                              : 'border-slate-200 hover:border-slate-300 bg-slate-50 text-slate-700'
-                          }`}
-                        >
-                          <div className="text-[11px] font-bold flex items-center gap-1">
-                            <ShieldAlert size={12} className="text-teal-700 shrink-0" />
-                            <span>Admin</span>
-                          </div>
-                          <div className="text-[9px] text-slate-500 truncate">Ops Panel</div>
-                        </button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEmail('priya.sharma@curahome.health');
-                            setPassword('password123');
-                          }}
-                          className={`p-2 rounded-lg border text-left transition-all ${
-                            email === 'priya.sharma@curahome.health'
-                              ? 'border-teal-600 bg-teal-50/70 text-teal-900 font-bold ring-1 ring-teal-600'
-                              : 'border-slate-200 hover:border-slate-300 bg-slate-50 text-slate-700'
-                          }`}
-                        >
-                          <div className="text-[11px] font-bold flex items-center gap-1">
-                            <Stethoscope size={12} className="text-teal-700 shrink-0" />
-                            <span>Nurse</span>
-                          </div>
-                          <div className="text-[9px] text-slate-500 truncate">Workspace</div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEmail('sarah.jenkins@example.com');
-                            setPassword('password123');
-                          }}
-                          className={`p-2 rounded-lg border text-left transition-all ${
-                            email === 'sarah.jenkins@example.com'
-                              ? 'border-teal-600 bg-teal-50/70 text-teal-900 font-bold ring-1 ring-teal-600'
-                              : 'border-slate-200 hover:border-slate-300 bg-slate-50 text-slate-700'
-                          }`}
-                        >
-                          <div className="text-[11px] font-bold flex items-center gap-1">
-                            <Heart size={12} className="text-teal-700 shrink-0" />
-                            <span>Patient</span>
-                          </div>
-                          <div className="text-[9px] text-slate-500 truncate">Portal</div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Auth Form */}
                   <form onSubmit={handleAuthSubmit} className="space-y-4">
