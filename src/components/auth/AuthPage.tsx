@@ -326,93 +326,58 @@ export const AuthPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Mode Selector Tabs */}
-                  <div className="flex items-center p-1 bg-slate-100 rounded-xl mb-5 border border-slate-200">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMode('signin');
-                        setErrorMsg('');
-                        setSuccessMsg('');
-                        setResendMsg('');
-                      }}
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                        authMode === 'signin'
-                          ? 'bg-white text-teal-900 shadow-xs'
-                          : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMode('signup');
-                        setErrorMsg('');
-                        setSuccessMsg('');
-                        setResendMsg('');
-                      }}
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                        authMode === 'signup'
-                          ? 'bg-white text-teal-900 shadow-xs'
-                          : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      Create Account (Sign Up)
-                    </button>
-                  </div>
+                  {isUnverified ? (
+                    /* DEDICATED VERIFICATION PENDING CARD */
+                    <div className="space-y-5 text-left">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-200 shadow-xs">
+                        <Mail size={24} />
+                      </div>
 
-                  <div className="mb-4">
-                    <h2 className="text-xl font-bold text-slate-900">
-                      {authMode === 'signin' ? 'Sign In to CuraHome' : 'Create New Account'}
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {authMode === 'signin'
-                        ? 'Enter your verified email & password to access your healthcare portal.'
-                        : 'Sign up to connect with healthcare services or register as a nurse.'}
-                    </p>
-                  </div>
-
-                  {/* Unverified Email Warning Box */}
-                  {isUnverified && (
-                    <div className="mb-5 p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0">
-                          <Mail size={20} />
+                      <div>
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-amber-800 mb-1">
+                          Email Verification Required
                         </div>
-                        <div className="flex-1">
-                          <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wide">
-                            Email Verification Required
-                          </h4>
-                          <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                            We sent a verification link to <strong className="text-amber-950 font-semibold">{unverifiedEmail || email}</strong>.
-                            Please check your email inbox and click the verification link before logging in.
-                          </p>
-                        </div>
+                        <h2 className="text-xl font-extrabold text-slate-900">
+                          Check your email inbox
+                        </h2>
+                        <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                          We sent a verification link to{' '}
+                          <strong className="text-slate-900 font-bold bg-amber-100/60 px-2 py-0.5 rounded border border-amber-200">
+                            {unverifiedEmail || email}
+                          </strong>
+                          . Please open your email inbox and click the verification link to confirm your account.
+                        </p>
                       </div>
 
                       {resendMsg && (
-                        <div className="p-2.5 bg-emerald-100/90 border border-emerald-300 text-emerald-900 rounded-xl text-xs flex items-center gap-2">
-                          <CheckCircle2 size={14} className="text-emerald-700 shrink-0" />
-                          <span>{resendMsg}</span>
+                        <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                          <span className="font-medium">{resendMsg}</span>
                         </div>
                       )}
 
-                      <div className="pt-1 flex flex-col sm:flex-row items-center gap-2">
+                      {errorMsg && (
+                        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                          <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                          <span>{errorMsg}</span>
+                        </div>
+                      )}
+
+                      <div className="pt-2 space-y-3">
                         <button
                           type="button"
                           onClick={handleResendVerification}
                           disabled={isResending}
-                          className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 border border-amber-300 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                          className="w-full py-3 px-4 text-xs font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 border border-amber-300 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                           {isResending ? (
                             <>
-                              <RefreshCw size={14} className="animate-spin text-amber-900" />
+                              <RefreshCw size={16} className="animate-spin text-amber-900" />
                               <span>Resending Email...</span>
                             </>
                           ) : (
                             <>
-                              <Send size={14} className="text-amber-900" />
+                              <Send size={16} className="text-amber-900" />
                               <span>Resend Verification Email</span>
                             </>
                           )}
@@ -421,177 +386,229 @@ export const AuthPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            setAuthMode('signin');
                             setIsUnverified(false);
+                            setAuthMode('signin');
                             setErrorMsg('');
+                            setResendMsg('');
+                            setSuccessMsg('');
                           }}
-                          className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-300 rounded-xl transition-all shadow-xs text-center"
+                          className="w-full py-2.5 px-4 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition-all text-center"
                         >
-                          Back to Sign In
+                          ← Back to Sign In
                         </button>
                       </div>
                     </div>
-                  )}
-
-                  {errorMsg && !isUnverified && (
-                    <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
-                      <AlertCircle size={16} className="shrink-0 text-rose-600" />
-                      <span>{errorMsg}</span>
-                    </div>
-                  )}
-
-                  {successMsg && !isUnverified && (
-                    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
-                      <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
-                      <span>{successMsg}</span>
-                    </div>
-                  )}
-
-                  {/* Google OAuth Button */}
-                  <button
-                    type="button"
-                    onClick={() => signInWithGoogle()}
-                    className="w-full mb-4 py-2.5 px-4 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2.5"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                      />
-                    </svg>
-                    <span>Continue with Google</span>
-                  </button>
-
-                  <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-slate-200"></div>
-                    </div>
-                    <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
-                      <span className="bg-white px-3 text-slate-400 font-semibold">Or with Email</span>
-                    </div>
-                  </div>
-
-                  {/* Auth Form */}
-                  <form onSubmit={handleAuthSubmit} className="space-y-4">
-                    {authMode === 'signup' && (
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          Full Legal Name
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            required
-                            value={signUpName}
-                            onChange={(e) => setSignUpName(e.target.value)}
-                            placeholder="e.g. Marcus Bell"
-                            className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                          />
-                          <User size={16} className="absolute left-3 top-3 text-slate-400" />
-                        </div>
-                      </div>
-                    )}
-
+                  ) : (
+                    /* REGULAR AUTH TABS & FORM */
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Email Address
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="email"
-                          required
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="name@example.com"
-                          className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                        />
-                        <Mail size={16} className="absolute left-3 top-3 text-slate-400" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Password
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          required
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="w-full pl-9 pr-10 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                        />
-                        <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
+                      {/* Mode Selector Tabs */}
+                      <div className="flex items-center p-1 bg-slate-100 rounded-xl mb-5 border border-slate-200">
                         <button
                           type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                          onClick={() => {
+                            setAuthMode('signin');
+                            setErrorMsg('');
+                            setSuccessMsg('');
+                            setResendMsg('');
+                          }}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                            authMode === 'signin'
+                              ? 'bg-white text-teal-900 shadow-xs'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
                         >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          Sign In
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthMode('signup');
+                            setErrorMsg('');
+                            setSuccessMsg('');
+                            setResendMsg('');
+                          }}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                            authMode === 'signup'
+                              ? 'bg-white text-teal-900 shadow-xs'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          Create Account (Sign Up)
                         </button>
                       </div>
-                    </div>
 
-                    {authMode === 'signup' && (
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          Confirm Password
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            required
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full pl-9 pr-10 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                          />
-                          <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
-                        </div>
+                      <div className="mb-4">
+                        <h2 className="text-xl font-bold text-slate-900">
+                          {authMode === 'signin' ? 'Sign In to CuraHome' : 'Create New Account'}
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {authMode === 'signin'
+                            ? 'Enter your verified email & password to access your healthcare portal.'
+                            : 'Sign up to connect with healthcare services or register as a nurse.'}
+                        </p>
                       </div>
-                    )}
 
-                    {/* Admin Email Highlight Callout */}
-                    {isCurrentEmailAdmin && (
-                      <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-900 flex items-center gap-2">
-                        <ShieldAlert size={16} className="text-teal-700 shrink-0" />
-                        <div>
-                          <strong>Admin Email Identified:</strong> Access to Admin Operations Panel.
+                      {errorMsg && (
+                        <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+                          <AlertCircle size={16} className="shrink-0 text-rose-600" />
+                          <span>{errorMsg}</span>
                         </div>
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full py-3 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
-                    >
-                      {isLoading ? (
-                        <>
-                          <RefreshCw size={16} className="animate-spin" />
-                          <span>Connecting to Supabase...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>{authMode === 'signin' ? 'Sign In / Continue' : 'Sign Up Account'}</span>
-                          <ArrowRight size={16} />
-                        </>
                       )}
-                    </button>
-                  </form>
+
+                      {successMsg && (
+                        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                          <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                          <span>{successMsg}</span>
+                        </div>
+                      )}
+
+                      {/* Google OAuth Button */}
+                      <button
+                        type="button"
+                        onClick={() => signInWithGoogle()}
+                        className="w-full mb-4 py-2.5 px-4 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2.5"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24">
+                          <path
+                            fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                          />
+                        </svg>
+                        <span>Continue with Google</span>
+                      </button>
+
+                      <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-slate-200"></div>
+                        </div>
+                        <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
+                          <span className="bg-white px-3 text-slate-400 font-semibold">Or with Email</span>
+                        </div>
+                      </div>
+
+                      {/* Auth Form */}
+                      <form onSubmit={handleAuthSubmit} className="space-y-4">
+                        {authMode === 'signup' && (
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Full Legal Name
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                required
+                                value={signUpName}
+                                onChange={(e) => setSignUpName(e.target.value)}
+                                placeholder="e.g. Marcus Bell"
+                                className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                              />
+                              <User size={16} className="absolute left-3 top-3 text-slate-400" />
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Email Address
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="email"
+                              required
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="name@example.com"
+                              className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                            />
+                            <Mail size={16} className="absolute left-3 top-3 text-slate-400" />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Password
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              required
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              placeholder="••••••••"
+                              className="w-full pl-9 pr-10 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                            />
+                            <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                            >
+                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {authMode === 'signup' && (
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Confirm Password
+                            </label>
+                            <div className="relative">
+                              <input
+                                type={showPassword ? 'text' : 'password'}
+                                required
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full pl-9 pr-10 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                              />
+                              <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Admin Email Highlight Callout */}
+                        {isCurrentEmailAdmin && (
+                          <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-900 flex items-center gap-2">
+                            <ShieldAlert size={16} className="text-teal-700 shrink-0" />
+                            <div>
+                              <strong>Admin Email Identified:</strong> Access to Admin Operations Panel.
+                            </div>
+                          </div>
+                        )}
+
+                        <button
+                          type="submit"
+                          disabled={isLoading}
+                          className="w-full py-3 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
+                        >
+                          {isLoading ? (
+                            <>
+                              <RefreshCw size={16} className="animate-spin" />
+                              <span>Connecting to Supabase...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>{authMode === 'signin' ? 'Sign In / Continue' : 'Sign Up Account'}</span>
+                              <ArrowRight size={16} />
+                            </>
+                          )}
+                        </button>
+                      </form>
+                    </div>
+                  )}
                 </div>
               )}
 
