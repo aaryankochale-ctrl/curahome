@@ -1258,6 +1258,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
+    const targetReq = requests.find((r) => r.id === requestId);
+
     setRequests((prev) =>
       prev.map((r) =>
         r.id === requestId
@@ -1272,26 +1274,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
     );
 
-    const req = requests.find((r) => r.id === requestId);
-    if (req) {
+    if (isSupabaseConfigured) {
+      supabase
+        .from('service_requests')
+        .update({
+          status: 'nurse_assigned',
+          assigned_nurse_id: nurse.id,
+          assigned_nurse_name: nurse.fullName,
+        })
+        .eq('id', requestId)
+        .then(({ error }) => {
+          if (error) console.error('Supabase error assigning nurse:', error.message);
+        });
+    }
+
+    if (targetReq) {
       // Notify Nurse
       addNotification({
         targetRole: 'nurse',
         targetUserId: nurse.id,
         title: 'New Patient Visit Assigned',
-        message: `You have been assigned to ${req.patientName} for "${req.title}" on ${req.preferredDate}. Please review and accept.`,
+        message: `You have been assigned to ${targetReq.patientName} for "${targetReq.title}" on ${targetReq.preferredDate}. Please review and accept.`,
         type: 'info',
-        linkRequestId: req.id,
+        linkRequestId: targetReq.id,
       });
 
       // Notify Patient
       addNotification({
         targetRole: 'patient',
-        targetUserId: req.patientId,
+        targetUserId: targetReq.patientId,
         title: 'Qualified Nurse Assigned',
-        message: `Admin has assigned ${nurse.fullName} (${nurse.qualification}) to your request. Waiting for appointment confirmation.`,
+        message: `Admin has assigned ${nurse.fullName} (${nurse.qualification}) to your request "${targetReq.title}".`,
         type: 'success',
-        linkRequestId: req.id,
+        linkRequestId: targetReq.id,
       });
     }
   };

@@ -56,6 +56,9 @@ export const PatientDashboard: React.FC = () => {
     return true;
   });
 
+  // Ensure selected request updates live when state changes
+  const liveSelectedRequest = requests.find((r) => r.id === selectedRequest?.id) || selectedRequest;
+
   return (
     <div className="space-y-6">
       {/* Patient Welcome Banner */}
@@ -145,9 +148,9 @@ export const PatientDashboard: React.FC = () => {
             Scheduled Home Visits
           </div>
           <div className="text-2xl font-bold text-teal-700 mt-1 tabular-nums">
-            {activeRequests.filter((r) => r.status === 'accepted' || r.status === 'in_progress').length}
+            {activeRequests.filter((r) => r.status === 'nurse_assigned' || r.status === 'accepted' || r.status === 'in_progress').length}
           </div>
-          <div className="text-xs text-slate-500 mt-1">Nurses confirmed on schedule</div>
+          <div className="text-xs text-slate-500 mt-1">Nurses assigned & scheduled</div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
@@ -161,7 +164,40 @@ export const PatientDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Active Attention Item Banner (if any in progress or newly assigned) */}
+      {/* Active Attention Item Banner (Nurse Matched Alert) */}
+      {activeRequests.some((r) => r.status === 'nurse_assigned') && (
+        <div className="bg-indigo-50/90 border border-indigo-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <UserCheck size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded">
+                  Nurse Matched & Assigned
+                </span>
+              </div>
+              <h4 className="text-xs font-bold text-indigo-950 mt-0.5">
+                {activeRequests.find((r) => r.status === 'nurse_assigned')?.assignedNurseName || 'Nurse'} has been matched to your request!
+              </h4>
+              <p className="text-xs text-indigo-700">
+                Your assigned nurse is reviewing your medical care details. Click to view full nurse credentials and contact details.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              const assignedReq = activeRequests.find((r) => r.status === 'nurse_assigned');
+              if (assignedReq) setSelectedRequest(assignedReq);
+            }}
+            className="px-3.5 py-2 text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 rounded-lg transition-colors shrink-0 shadow-xs flex items-center gap-1.5"
+          >
+            <ShieldCheck size={14} /> View Nurse Profile
+          </button>
+        </div>
+      )}
+
+      {/* Active Attention Item Banner (Visit In Progress) */}
       {activeRequests.some((r) => r.status === 'in_progress') && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -316,17 +352,17 @@ export const PatientDashboard: React.FC = () => {
 
                     <div className="flex items-center gap-4 shrink-0">
                       {req.assignedNurseName ? (
-                        <div className="text-left md:text-right">
-                          <div className="text-[11px] text-slate-400">Assigned Clinician</div>
-                          <div className="text-xs font-bold text-slate-900 flex items-center md:justify-end gap-1">
-                            <ShieldCheck size={13} className="text-teal-600" />
+                        <div className="text-left md:text-right bg-teal-50/70 border border-teal-200 px-3 py-1.5 rounded-lg shadow-2xs">
+                          <div className="text-[10px] font-bold text-teal-800 uppercase tracking-wider">Assigned Nurse</div>
+                          <div className="text-xs font-bold text-slate-900 flex items-center md:justify-end gap-1 mt-0.5">
+                            <ShieldCheck size={13} className="text-teal-600 shrink-0" />
                             <span>{req.assignedNurseName}</span>
                           </div>
                         </div>
                       ) : (
-                        <div className="text-left md:text-right">
-                          <div className="text-[11px] text-slate-400">Nurse Assignment</div>
-                          <div className="text-xs font-medium text-amber-700">Admin Matching</div>
+                        <div className="text-left md:text-right bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg">
+                          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Nurse Assignment</div>
+                          <div className="text-xs font-medium text-amber-700 mt-0.5">Admin Matching</div>
                         </div>
                       )}
 
@@ -358,7 +394,7 @@ export const PatientDashboard: React.FC = () => {
       />
 
       <PatientRequestDetailModal
-        request={selectedRequest}
+        request={liveSelectedRequest}
         onClose={() => setSelectedRequest(null)}
       />
     </div>
