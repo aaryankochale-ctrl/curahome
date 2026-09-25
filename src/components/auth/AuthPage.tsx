@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { NurseRegistrationModal } from '../nurse/NurseRegistrationModal';
 import {
@@ -21,6 +21,7 @@ import {
   Heart,
   RefreshCw,
   Send,
+  KeyRound,
 } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
@@ -28,6 +29,8 @@ export const AuthPage: React.FC = () => {
     signUpWithSupabase,
     signInWithSupabase,
     resendVerificationEmail,
+    sendEmailOtp,
+    verifyEmailOtp,
     verificationNotice,
     setVerificationNotice,
     signInWithGoogle,
@@ -57,6 +60,116 @@ export const AuthPage: React.FC = () => {
   const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const [isResending, setIsResending] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
+
+  // 6-Digit OTP Passcode State
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(60);
+  const [canResendOtp, setCanResendOtp] = useState(false);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Timer countdown effect for OTP resend
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isUnverified && otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => {
+          if (prev <= 1) {
+            setCanResendOtp(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isUnverified, otpTimer]);
+
+  // Handle digit typing or 6-digit code pasting
+  const handleOtpChange = (index: number, value: string) => {
+    // Handle pasting full 6-digit code (e.g. 123456)
+    if (value.length > 1) {
+      const pasted = value.replace(/\D/g, '').slice(0, 6).split('');
+      if (pasted.length > 0) {
+        const newOtp = [...otpDigits];
+        pasted.forEach((char, i) => {
+          if (i < 6) newOtp[i] = char;
+        });
+        setOtpDigits(newOtp);
+        const lastIdx = Math.min(pasted.length - 1, 5);
+        otpInputRefs.current[lastIdx]?.focus();
+      }
+      return;
+    }
+
+    const cleanValue = value.replace(/\D/g, '');
+    const newOtp = [...otpDigits];
+    newOtp[index] = cleanValue;
+    setOtpDigits(newOtp);
+
+    // Auto-advance focus to next digit box
+    if (cleanValue && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = otpDigits.join('');
+    if (token.length < 6) {
+      setErrorMsg('Please enter all 6 digits of the OTP code.');
+      return;
+    }
+
+    const targetEmail = unverifiedEmail || email.trim();
+    setIsVerifyingOtp(true);
+    setErrorMsg('');
+    setResendMsg('');
+
+    const res = await verifyEmailOtp(targetEmail, token);
+    setIsVerifyingOtp(false);
+
+    if (!res.success) {
+      setErrorMsg(res.error || 'Invalid 6-digit OTP code.');
+      return;
+    }
+
+    setIsUnverified(false);
+    if (res.isNewUser) {
+      setScreen('role_choice');
+    }
+  };
+
+  const handleResendOtp = async () => {
+    const targetEmail = unverifiedEmail || email.trim();
+    setIsResending(true);
+    setErrorMsg('');
+    setResendMsg('');
+
+    const res = await sendEmailOtp(targetEmail);
+    setIsResending(false);
+
+    if (res.success) {
+      setResendMsg(`A new 6-digit OTP code has been sent to ${targetEmail}!`);
+      setOtpTimer(60);
+      setCanResendOtp(false);
+    } else {
+      const fallbackRes = await resendVerificationEmail(targetEmail);
+      if (fallbackRes.success) {
+        setResendMsg(`Verification email resent to ${targetEmail}! Please check your inbox.`);
+        setOtpTimer(60);
+        setCanResendOtp(false);
+      } else {
+        setErrorMsg(fallbackRes.error || 'Failed to resend verification code.');
+      }
+    }
+  };
 
   // Patient Sign Up fields
   const [fullName, setFullName] = useState('');
@@ -119,10 +232,12 @@ export const AuthPage: React.FC = () => {
         setIsUnverified(true);
         setUnverifiedEmail(targetEmail);
         setSuccessMsg(
-          "We've sent a verification email to your email address. Please verify your email before logging in."
+          'We sent a 6-digit verification code to your email inbox! Please enter it below.'
         );
         setPassword('');
         setConfirmPassword('');
+        setOtpTimer(60);
+        setCanResendOtp(false);
         return;
       }
 
@@ -140,8 +255,10 @@ export const AuthPage: React.FC = () => {
       setIsUnverified(true);
       setUnverifiedEmail(targetEmail);
       setErrorMsg(
-        'Please verify your email before logging in. Check your inbox for the verification email.'
+        'Please verify your email or enter the 6-digit OTP code sent to your inbox.'
       );
+      setOtpTimer(60);
+      setCanResendOtp(false);
       return;
     }
 
@@ -158,24 +275,7 @@ export const AuthPage: React.FC = () => {
   };
 
   const handleResendVerification = async () => {
-    const targetEmail = unverifiedEmail || email.trim();
-    if (!targetEmail) {
-      setErrorMsg('Please enter your Email Address to resend verification.');
-      return;
-    }
-
-    setIsResending(true);
-    setResendMsg('');
-    setErrorMsg('');
-
-    const res = await resendVerificationEmail(targetEmail);
-    setIsResending(false);
-
-    if (res.success) {
-      setResendMsg(`Verification email resent to ${targetEmail}! Please check your inbox.`);
-    } else {
-      setErrorMsg(res.error || 'Failed to resend verification email.');
-    }
+    await handleResendOtp();
   };
 
   const handlePatientFormSubmit = (e: React.FormEvent) => {
@@ -327,25 +427,25 @@ export const AuthPage: React.FC = () => {
                   )}
 
                   {isUnverified ? (
-                    /* DEDICATED VERIFICATION PENDING CARD */
+                    /* DEDICATED 6-DIGIT OTP VERIFICATION CARD */
                     <div className="space-y-5 text-left">
-                      <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-200 shadow-xs">
-                        <Mail size={24} />
+                      <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center border border-teal-200 shadow-xs">
+                        <KeyRound size={24} className="text-teal-700" />
                       </div>
 
                       <div>
-                        <div className="text-[11px] font-bold uppercase tracking-wider text-amber-800 mb-1">
-                          Email Verification Required
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-teal-800 mb-1 flex items-center gap-1.5">
+                          <ShieldCheck size={14} /> Email OTP Verification
                         </div>
                         <h2 className="text-xl font-extrabold text-slate-900">
-                          Check your email inbox
+                          Enter 6-Digit Passcode
                         </h2>
                         <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                          We sent a verification link to{' '}
-                          <strong className="text-slate-900 font-bold bg-amber-100/60 px-2 py-0.5 rounded border border-amber-200">
+                          We sent a 6-digit OTP code to{' '}
+                          <strong className="text-slate-900 font-bold bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                             {unverifiedEmail || email}
                           </strong>
-                          . Please open your email inbox and click the verification link to confirm your account.
+                          . Enter the passcode below or click the verification link in your email.
                         </p>
                       </div>
 
@@ -363,23 +463,60 @@ export const AuthPage: React.FC = () => {
                         </div>
                       )}
 
-                      <div className="pt-2 space-y-3">
+                      {/* 6-Digit OTP Form */}
+                      <form onSubmit={handleVerifyOtpSubmit} className="space-y-4 pt-1">
+                        <div className="flex items-center justify-between gap-1.5 sm:gap-2 max-w-xs mx-auto">
+                          {otpDigits.map((digit, index) => (
+                            <input
+                              key={index}
+                              ref={(el) => {
+                                otpInputRefs.current[index] = el;
+                              }}
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={6}
+                              value={digit}
+                              onChange={(e) => handleOtpChange(index, e.target.value)}
+                              onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                              className="w-10 h-12 sm:w-11 sm:h-12 text-center text-lg font-bold text-slate-900 bg-slate-50 border-2 border-slate-300 rounded-xl focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-2 focus:ring-teal-500/20 transition-all"
+                            />
+                          ))}
+                        </div>
+
                         <button
-                          type="button"
-                          onClick={handleResendVerification}
-                          disabled={isResending}
-                          className="w-full py-3 px-4 text-xs font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 border border-amber-300 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                          type="submit"
+                          disabled={isVerifyingOtp || otpDigits.join('').length < 6}
+                          className="w-full py-3 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
                         >
-                          {isResending ? (
+                          {isVerifyingOtp ? (
                             <>
-                              <RefreshCw size={16} className="animate-spin text-amber-900" />
-                              <span>Resending Email...</span>
+                              <RefreshCw size={16} className="animate-spin text-white" />
+                              <span>Verifying Code...</span>
                             </>
                           ) : (
                             <>
-                              <Send size={16} className="text-amber-900" />
-                              <span>Resend Verification Email</span>
+                              <CheckCircle2 size={16} />
+                              <span>Verify & Activate Account</span>
                             </>
+                          )}
+                        </button>
+                      </form>
+
+                      <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                        <button
+                          type="button"
+                          onClick={handleResendOtp}
+                          disabled={isResending || !canResendOtp}
+                          className="text-xs font-bold text-teal-700 hover:text-teal-900 disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          <Send size={14} />
+                          {isResending ? (
+                            'Sending OTP...'
+                          ) : canResendOtp ? (
+                            'Resend 6-Digit Code'
+                          ) : (
+                            `Resend Code in ${otpTimer}s`
                           )}
                         </button>
 
@@ -392,7 +529,7 @@ export const AuthPage: React.FC = () => {
                             setResendMsg('');
                             setSuccessMsg('');
                           }}
-                          className="w-full py-2.5 px-4 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition-all text-center"
+                          className="text-xs font-semibold text-slate-500 hover:text-slate-800 underline"
                         >
                           ← Back to Sign In
                         </button>

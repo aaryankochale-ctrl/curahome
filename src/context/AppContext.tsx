@@ -121,6 +121,11 @@ interface AppContextType {
     error?: string;
   }>;
   resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
+  sendEmailOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verifyEmailOtp: (
+    email: string,
+    token: string
+  ) => Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }>;
   verificationNotice: string | null;
   setVerificationNotice: (notice: string | null) => void;
   signInWithGoogle: (email?: string, name?: string) => Promise<void>;
@@ -403,6 +408,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     return { success: true };
+  };
+
+  const sendEmailOtp = async (
+    email: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      return { success: false, error: 'Please enter your Email Address.' };
+    }
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: cleanEmail,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+    }
+
+    return { success: true };
+  };
+
+  const verifyEmailOtp = async (
+    email: string,
+    token: string
+  ): Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanToken = token.trim();
+
+    if (!cleanToken || cleanToken.length < 6) {
+      return { success: false, error: 'Please enter the complete 6-digit OTP code.' };
+    }
+
+    if (isSupabaseConfigured) {
+      let { error } = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: 'signup',
+      });
+
+      if (error) {
+        const resEmail = await supabase.auth.verifyOtp({
+          email: cleanEmail,
+          token: cleanToken,
+          type: 'email',
+        });
+        error = resEmail.error;
+      }
+
+      if (error) {
+        return {
+          success: false,
+          error: 'Invalid or expired 6-digit verification code. Please check your email inbox.',
+        };
+      }
+    }
+
+    setVerificationNotice('Email verified successfully via OTP! Welcome to CuraHome.');
+    const res = loginWithEmail(cleanEmail);
+    return { success: true, isNewUser: res.isNewUser, role: res.role };
   };
 
   const loginWithGoogleUser = (email: string, fullName?: string): { isNewUser: boolean; role?: UserRole } => {
@@ -1339,6 +1405,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         signUpWithSupabase,
         signInWithSupabase,
         resendVerificationEmail,
+        sendEmailOtp,
+        verifyEmailOtp,
         verificationNotice,
         setVerificationNotice,
         signInWithGoogle,
