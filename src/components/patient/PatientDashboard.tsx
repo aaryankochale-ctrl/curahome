@@ -202,7 +202,7 @@ export const PatientDashboard: React.FC = () => {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center gap-1 bg-slate-200/70 p-1 rounded-lg self-start sm:self-auto">
+          <div className="flex items-center gap-1 bg-slate-200/70 p-1 rounded-lg overflow-x-auto no-scrollbar w-full sm:w-auto whitespace-nowrap">
             <button
               onClick={() => setStatusFilter('all')}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${

@@ -174,8 +174,8 @@ export const AuthPage: React.FC = () => {
               <Sparkles size={14} className="text-teal-700" /> Home Healthcare & Clinical Dispatch
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Hospital-Grade Nursing <br />
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              Hospital-Grade Nursing <br className="hidden sm:inline" />
               <span className="text-teal-700">Delivered At Your Home</span>
             </h1>
 

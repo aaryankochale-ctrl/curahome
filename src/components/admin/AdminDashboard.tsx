@@ -253,8 +253,8 @@ export const AdminDashboard: React.FC = () => {
       {/* Main Administrative Views (3 Core Tabs) */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
         {/* Navigation Tab Bar */}
-        <div className="border-b border-slate-200 bg-slate-50/70 px-4 pt-3 flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
+        <div className="border-b border-slate-200 bg-slate-50/70 px-2 sm:px-4 pt-2 flex items-center justify-between overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1.5 whitespace-nowrap min-w-max pb-1 sm:pb-0">
             <button
               onClick={() => setActiveTab('requests')}
               className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 ${
