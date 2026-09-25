@@ -105,8 +105,24 @@ interface AppContextType {
   addAdminNote: (requestId: string, note: string) => void;
 
   // Authentication Actions
-  signUpWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
-  signInWithSupabase: (email: string, password?: string) => Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }>;
+  signUpWithSupabase: (
+    email: string,
+    password?: string,
+    fullName?: string
+  ) => Promise<{ success: boolean; needsVerification?: boolean; error?: string }>;
+  signInWithSupabase: (
+    email: string,
+    password?: string
+  ) => Promise<{
+    success: boolean;
+    isNewUser?: boolean;
+    role?: UserRole;
+    needsVerification?: boolean;
+    error?: string;
+  }>;
+  resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verificationNotice: string | null;
+  setVerificationNotice: (notice: string | null) => void;
   signInWithGoogle: (email?: string, name?: string) => Promise<void>;
   loginWithGoogleUser: (email: string, fullName?: string) => { isNewUser: boolean; role?: UserRole };
 
@@ -130,6 +146,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentUserEmail, setCurrentUserEmailState] = useState<string>(() => {
     return localStorage.getItem(`${STORAGE_KEY_PREFIX}currentUserEmail`) || '';
   });
+
+  const [verificationNotice, setVerificationNotice] = useState<string | null>(null);
 
   const setCurrentUserEmail = (email: string) => {
     setCurrentUserEmailState(email);
@@ -246,15 +264,119 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const signUpWithSupabase = async (
     email: string,
-    password?: string
-  ): Promise<{ success: boolean; error?: string }> => {
+    password?: string,
+    fullName?: string
+  ): Promise<{ success: boolean; needsVerification?: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
     setCurrentUserEmail(cleanEmail);
 
     if (isSupabaseConfigured && password) {
-      const { error } = await supabase.auth.signUp({
+      const redirectUrl = window.location.origin;
+      const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password: password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: fullName || '',
+          },
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        return {
+          success: false,
+          error: 'An account with this email address already exists. Please sign in instead.',
+        };
+      }
+
+      const isVerified = Boolean(data.user?.email_confirmed_at || data.user?.confirmed_at);
+      if (!isVerified) {
+        return { success: true, needsVerification: true };
+      }
+    }
+
+    return { success: true, needsVerification: false };
+  };
+
+  const signInWithSupabase = async (
+    email: string,
+    password?: string
+  ): Promise<{
+    success: boolean;
+    isNewUser?: boolean;
+    role?: UserRole;
+    needsVerification?: boolean;
+    error?: string;
+  }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    setCurrentUserEmail(cleanEmail);
+
+    if (isSupabaseConfigured && password) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: password,
+      });
+
+      if (error) {
+        const msg = error.message.toLowerCase();
+        if (
+          msg.includes('email not confirmed') ||
+          msg.includes('unverified') ||
+          (error as any).code === 'email_not_confirmed'
+        ) {
+          return {
+            success: false,
+            needsVerification: true,
+            error: 'Please verify your email before logging in. Check your inbox for the verification email.',
+          };
+        }
+        return {
+          success: false,
+          error:
+            error.message === 'Invalid login credentials'
+              ? 'Invalid email or password. Please check your credentials and try again.'
+              : error.message,
+        };
+      }
+
+      if (data.user) {
+        const isConfirmed = Boolean(data.user.email_confirmed_at || data.user.confirmed_at);
+        if (!isConfirmed) {
+          await supabase.auth.signOut().catch(() => {});
+          return {
+            success: false,
+            needsVerification: true,
+            error: 'Please verify your email before logging in. Check your inbox for the verification email.',
+          };
+        }
+      }
+    }
+
+    const res = loginWithEmail(cleanEmail, password);
+    return { success: true, isNewUser: res.isNewUser, role: res.role };
+  };
+
+  const resendVerificationEmail = async (
+    email: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      return { success: false, error: 'Please enter your Email Address.' };
+    }
+
+    if (isSupabaseConfigured) {
+      const redirectUrl = window.location.origin;
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: cleanEmail,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
       });
 
       if (error) {
@@ -263,28 +385,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     return { success: true };
-  };
-
-  const signInWithSupabase = async (
-    email: string,
-    password?: string
-  ): Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }> => {
-    const cleanEmail = email.trim().toLowerCase();
-    setCurrentUserEmail(cleanEmail);
-
-    if (isSupabaseConfigured && password) {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password: password,
-      });
-
-      if (error) {
-        console.warn('Supabase Auth response:', error.message);
-      }
-    }
-
-    const res = loginWithEmail(cleanEmail, password);
-    return { success: true, isNewUser: res.isNewUser, role: res.role };
   };
 
   const loginWithGoogleUser = (email: string, fullName?: string): { isNewUser: boolean; role?: UserRole } => {
@@ -404,16 +504,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthenticated(false);
   };
 
-  // Initial fetch and OAuth listener from Supabase if configured
+  // Initial fetch and OAuth / Email verification listener from Supabase if configured
   useEffect(() => {
     if (isSupabaseConfigured) {
-      // Listen for auth state changes (OAuth Redirects)
-      const { data: authSubscription } = supabase.auth.onAuthStateChange((event, session) => {
+      // Listen for auth state changes (OAuth Redirects & Email Verification Callback)
+      const { data: authSubscription } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (session?.user?.email) {
-          loginWithGoogleUser(
-            session.user.email,
-            session.user.user_metadata?.full_name || session.user.user_metadata?.name
+          const isConfirmed = Boolean(
+            session.user.email_confirmed_at ||
+              session.user.confirmed_at ||
+              session.user.app_metadata?.provider === 'google'
           );
+
+          if (isConfirmed) {
+            if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
+              setVerificationNotice('Email verified successfully! You can now continue.');
+            }
+            loginWithGoogleUser(
+              session.user.email,
+              session.user.user_metadata?.full_name || session.user.user_metadata?.name
+            );
+            if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+          } else {
+            await supabase.auth.signOut().catch(() => {});
+          }
         }
       });
 
@@ -1204,6 +1320,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginWithEmail,
         signUpWithSupabase,
         signInWithSupabase,
+        resendVerificationEmail,
+        verificationNotice,
+        setVerificationNotice,
         signInWithGoogle,
         loginWithGoogleUser,
         login,

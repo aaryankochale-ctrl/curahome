@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp, ADMIN_EMAILS } from '../../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { NurseRegistrationModal } from '../nurse/NurseRegistrationModal';
 import {
   HeartPulse,
@@ -15,24 +15,23 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  UserPlus,
   ShieldAlert,
   Activity,
   ChevronRight,
-  Building,
   Heart,
-  Calendar,
+  RefreshCw,
+  Send,
 } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
   const {
-    loginWithEmail,
     signUpWithSupabase,
     signInWithSupabase,
+    resendVerificationEmail,
+    verificationNotice,
+    setVerificationNotice,
     signInWithGoogle,
     login,
-    patients,
-    nurses,
     createPatientAccount,
     setActivePatientId,
     setActiveNurseId,
@@ -45,12 +44,19 @@ export const AuthPage: React.FC = () => {
 
   // Login & Sign Up form fields
   const [email, setEmail] = useState('');
+  const [signUpName, setSignUpName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Unverified Email State & Resend feedback
+  const [isUnverified, setIsUnverified] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
 
   // Patient Sign Up fields
   const [fullName, setFullName] = useState('');
@@ -63,10 +69,16 @@ export const AuthPage: React.FC = () => {
   // Modals
   const [isNurseModalOpen, setIsNurseModalOpen] = useState(false);
 
+  // Email format regex check
+  const isValidEmail = (emailStr: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr.trim());
+  };
+
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
+    setResendMsg('');
 
     const targetEmail = email.trim();
     if (!targetEmail) {
@@ -74,8 +86,17 @@ export const AuthPage: React.FC = () => {
       return;
     }
 
+    if (!isValidEmail(targetEmail)) {
+      setErrorMsg('Please enter a valid email address (e.g. name@domain.com).');
+      return;
+    }
+
     if (authMode === 'signup') {
-      if (password && password.length < 6) {
+      if (!signUpName.trim()) {
+        setErrorMsg('Please enter your full name.');
+        return;
+      }
+      if (!password || password.length < 6) {
         setErrorMsg('Password must be at least 6 characters long.');
         return;
       }
@@ -85,15 +106,27 @@ export const AuthPage: React.FC = () => {
       }
 
       setIsLoading(true);
-      const res = await signUpWithSupabase(targetEmail, password);
+      const res = await signUpWithSupabase(targetEmail, password, signUpName.trim());
       setIsLoading(false);
 
       if (!res.success) {
         setErrorMsg(res.error || 'Sign up failed.');
+        setIsUnverified(false);
         return;
       }
 
-      setSuccessMsg('Account created successfully in Supabase!');
+      if (res.needsVerification) {
+        setIsUnverified(true);
+        setUnverifiedEmail(targetEmail);
+        setSuccessMsg(
+          "We've sent a verification email to your email address. Please verify your email before logging in."
+        );
+        setPassword('');
+        setConfirmPassword('');
+        return;
+      }
+
+      setSuccessMsg('Account created successfully!');
       setScreen('role_choice');
       return;
     }
@@ -103,8 +136,45 @@ export const AuthPage: React.FC = () => {
     const res = await signInWithSupabase(targetEmail, password);
     setIsLoading(false);
 
+    if (res.needsVerification) {
+      setIsUnverified(true);
+      setUnverifiedEmail(targetEmail);
+      setErrorMsg(
+        'Please verify your email before logging in. Check your inbox for the verification email.'
+      );
+      return;
+    }
+
+    if (!res.success) {
+      setErrorMsg(res.error || 'Invalid credentials.');
+      setIsUnverified(false);
+      return;
+    }
+
+    setIsUnverified(false);
     if (res.isNewUser) {
       setScreen('role_choice');
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const targetEmail = unverifiedEmail || email.trim();
+    if (!targetEmail) {
+      setErrorMsg('Please enter your Email Address to resend verification.');
+      return;
+    }
+
+    setIsResending(true);
+    setResendMsg('');
+    setErrorMsg('');
+
+    const res = await resendVerificationEmail(targetEmail);
+    setIsResending(false);
+
+    if (res.success) {
+      setResendMsg(`Verification email resent to ${targetEmail}! Please check your inbox.`);
+    } else {
+      setErrorMsg(res.error || 'Failed to resend verification email.');
     }
   };
 
@@ -233,12 +303,29 @@ export const AuthPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Pure White Sign-In / Onboarding Card */}
+          {/* Right Column: Sign-In / Onboarding Card */}
           <div className="lg:col-span-6 w-full max-w-md mx-auto">
             <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xl">
               {/* SCREEN 1: SIGN IN / SIGN UP TABS */}
               {screen === 'login' && (
                 <div>
+                  {/* Verification Link Callback Notice */}
+                  {verificationNotice && (
+                    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-xs text-emerald-900 flex items-center justify-between gap-2 shadow-xs">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 size={18} className="shrink-0 text-emerald-600" />
+                        <span className="font-semibold">{verificationNotice}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setVerificationNotice(null)}
+                        className="text-[10px] text-emerald-700 font-bold hover:underline shrink-0"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
                   {/* Mode Selector Tabs */}
                   <div className="flex items-center p-1 bg-slate-100 rounded-xl mb-5 border border-slate-200">
                     <button
@@ -247,6 +334,7 @@ export const AuthPage: React.FC = () => {
                         setAuthMode('signin');
                         setErrorMsg('');
                         setSuccessMsg('');
+                        setResendMsg('');
                       }}
                       className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                         authMode === 'signin'
@@ -262,6 +350,7 @@ export const AuthPage: React.FC = () => {
                         setAuthMode('signup');
                         setErrorMsg('');
                         setSuccessMsg('');
+                        setResendMsg('');
                       }}
                       className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                         authMode === 'signup'
@@ -279,19 +368,79 @@ export const AuthPage: React.FC = () => {
                     </h2>
                     <p className="text-xs text-slate-500 mt-1">
                       {authMode === 'signin'
-                        ? 'Enter your email & password to access your healthcare portal.'
+                        ? 'Enter your verified email & password to access your healthcare portal.'
                         : 'Sign up to connect with healthcare services or register as a nurse.'}
                     </p>
                   </div>
 
-                  {errorMsg && (
+                  {/* Unverified Email Warning Box */}
+                  {isUnverified && (
+                    <div className="mb-5 p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0">
+                          <Mail size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+                            Email Verification Required
+                          </h4>
+                          <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                            We sent a verification link to <strong className="text-amber-950 font-semibold">{unverifiedEmail || email}</strong>.
+                            Please check your email inbox and click the verification link before logging in.
+                          </p>
+                        </div>
+                      </div>
+
+                      {resendMsg && (
+                        <div className="p-2.5 bg-emerald-100/90 border border-emerald-300 text-emerald-900 rounded-xl text-xs flex items-center gap-2">
+                          <CheckCircle2 size={14} className="text-emerald-700 shrink-0" />
+                          <span>{resendMsg}</span>
+                        </div>
+                      )}
+
+                      <div className="pt-1 flex flex-col sm:flex-row items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleResendVerification}
+                          disabled={isResending}
+                          className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 border border-amber-300 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          {isResending ? (
+                            <>
+                              <RefreshCw size={14} className="animate-spin text-amber-900" />
+                              <span>Resending Email...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send size={14} className="text-amber-900" />
+                              <span>Resend Verification Email</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthMode('signin');
+                            setIsUnverified(false);
+                            setErrorMsg('');
+                          }}
+                          className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-300 rounded-xl transition-all shadow-xs text-center"
+                        >
+                          Back to Sign In
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {errorMsg && !isUnverified && (
                     <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
                       <AlertCircle size={16} className="shrink-0 text-rose-600" />
                       <span>{errorMsg}</span>
                     </div>
                   )}
 
-                  {successMsg && (
+                  {successMsg && !isUnverified && (
                     <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
                       <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
                       <span>{successMsg}</span>
@@ -336,6 +485,25 @@ export const AuthPage: React.FC = () => {
 
                   {/* Auth Form */}
                   <form onSubmit={handleAuthSubmit} className="space-y-4">
+                    {authMode === 'signup' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Full Legal Name
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            value={signUpName}
+                            onChange={(e) => setSignUpName(e.target.value)}
+                            placeholder="e.g. Marcus Bell"
+                            className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                          />
+                          <User size={16} className="absolute left-3 top-3 text-slate-400" />
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Email Address
@@ -360,6 +528,7 @@ export const AuthPage: React.FC = () => {
                       <div className="relative">
                         <input
                           type={showPassword ? 'text' : 'password'}
+                          required
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="••••••••"
@@ -384,6 +553,7 @@ export const AuthPage: React.FC = () => {
                         <div className="relative">
                           <input
                             type={showPassword ? 'text' : 'password'}
+                            required
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder="••••••••"
@@ -410,7 +580,10 @@ export const AuthPage: React.FC = () => {
                       className="w-full py-3 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
                     >
                       {isLoading ? (
-                        <span>Connecting to Supabase...</span>
+                        <>
+                          <RefreshCw size={16} className="animate-spin" />
+                          <span>Connecting to Supabase...</span>
+                        </>
                       ) : (
                         <>
                           <span>{authMode === 'signin' ? 'Sign In / Continue' : 'Sign Up Account'}</span>
