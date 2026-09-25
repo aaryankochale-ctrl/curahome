@@ -469,15 +469,15 @@ export const AuthPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          setSelectedDemoEmail('kochaleaaryan@gmail.com');
-                          setEmail('kochaleaaryan@gmail.com');
-                          loginWithEmail('kochaleaaryan@gmail.com');
+                          setSelectedDemoEmail('aaryankochale@gmail.com');
+                          setEmail('aaryankochale@gmail.com');
+                          loginWithEmail('aaryankochale@gmail.com');
                         }}
                         className="p-2.5 rounded-xl border border-amber-200 bg-amber-50/40 hover:bg-amber-50 text-left flex items-center justify-between text-xs transition-all"
                       >
                         <div className="flex items-center gap-2">
                           <ShieldAlert size={14} className="text-amber-700" />
-                          <span className="font-bold text-slate-900">kochaleaaryan@gmail.com</span>
+                          <span className="font-bold text-slate-900">aaryankochale@gmail.com</span>
                           <span className="text-[10px] text-amber-800 font-semibold">Admin Panel</span>
                         </div>
                         <span className="text-[10px] text-amber-800 font-bold">Admin Login →</span>

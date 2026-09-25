@@ -18,6 +18,7 @@ import {
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export const ADMIN_EMAILS = [
+  'aaryankochale@gmail.com',
   'kochaleaaryan@gmail.com',
   'admin@curahome.health',
   'admin@gmail.com',
