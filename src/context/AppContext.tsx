@@ -294,13 +294,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
       }
 
-      const isVerified = Boolean(data.user?.email_confirmed_at || data.user?.confirmed_at);
-      if (!isVerified) {
-        return { success: true, needsVerification: true };
-      }
+      // Immediately sign out temporary session so user cannot bypass verification
+      await supabase.auth.signOut().catch(() => {});
     }
 
-    return { success: true, needsVerification: false };
+    // Always require real email verification link click before allowing login
+    return { success: true, needsVerification: true };
   };
 
   const signInWithSupabase = async (
@@ -316,7 +315,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const cleanEmail = email.trim().toLowerCase();
     setCurrentUserEmail(cleanEmail);
 
-    if (isSupabaseConfigured && password) {
+    if (!password || !password.trim()) {
+      return { success: false, error: 'Please enter your password.' };
+    }
+
+    if (isSupabaseConfigured) {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password: password,
@@ -339,13 +342,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           success: false,
           error:
             error.message === 'Invalid login credentials'
-              ? 'Invalid email or password. Please check your credentials and try again.'
+              ? 'Invalid email or password. Please check your credentials or click "Create Account".'
               : error.message,
         };
       }
 
       if (data.user) {
-        const isConfirmed = Boolean(data.user.email_confirmed_at || data.user.confirmed_at);
+        const isConfirmed = Boolean(
+          data.user.email_confirmed_at ||
+            data.user.confirmed_at ||
+            data.user.app_metadata?.provider === 'google'
+        );
         if (!isConfirmed) {
           await supabase.auth.signOut().catch(() => {});
           return {
@@ -354,6 +361,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             error: 'Please verify your email before logging in. Check your inbox for the verification email.',
           };
         }
+      }
+    } else {
+      if (
+        !checkIsAdminEmail(cleanEmail) &&
+        !patients.some((p) => p.email.toLowerCase() === cleanEmail) &&
+        !nurses.some((n) => n.email.toLowerCase() === cleanEmail)
+      ) {
+        return {
+          success: false,
+          error: 'Account not found. Please create an account to sign up.',
+        };
       }
     }
 
