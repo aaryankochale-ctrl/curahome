@@ -549,38 +549,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthenticated(true);
   };
 
-  const logout = () => {
-    if (isSupabaseConfigured) {
-      supabase.auth.signOut().catch(() => {});
-    }
+  const logout = async () => {
     setIsAuthenticated(false);
+    setCurrentUserEmailState('');
+    localStorage.removeItem(`${STORAGE_KEY_PREFIX}isAuthenticated`);
+    localStorage.removeItem(`${STORAGE_KEY_PREFIX}currentUserEmail`);
+    localStorage.removeItem(`${STORAGE_KEY_PREFIX}activeRole`);
+    localStorage.removeItem(`${STORAGE_KEY_PREFIX}activePatientId`);
+    localStorage.removeItem(`${STORAGE_KEY_PREFIX}activeNurseId`);
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.error('Supabase signOut error:', err);
+      }
+    }
   };
 
-  // Initial fetch and OAuth / Email verification listener from Supabase if configured
+  // Initial fetch and OAuth listener from Supabase if configured
   useEffect(() => {
     if (isSupabaseConfigured) {
-      // Listen for auth state changes (OAuth Redirects & Email Verification Callback)
+      // Listen for auth state changes (OAuth Redirects & Sign Outs)
       const { data: authSubscription } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session?.user?.email) {
-          const isConfirmed = Boolean(
-            session.user.email_confirmed_at ||
-              session.user.confirmed_at ||
-              session.user.app_metadata?.provider === 'google'
-          );
+        if (event === 'SIGNED_OUT') {
+          setIsAuthenticated(false);
+          setCurrentUserEmailState('');
+          return;
+        }
 
-          if (isConfirmed) {
-            if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
-              setVerificationNotice('Email verified successfully! You can now continue.');
-            }
+        if (event === 'SIGNED_IN' && session?.user?.email) {
+          const isGoogleProvider = session.user.app_metadata?.provider === 'google';
+          const isUrlOAuthCallback = window.location.hash.includes('access_token') || window.location.search.includes('code=');
+          
+          if (isGoogleProvider || isUrlOAuthCallback) {
+            setVerificationNotice('Signed in with Google successfully!');
             loginWithGoogleUser(
               session.user.email,
               session.user.user_metadata?.full_name || session.user.user_metadata?.name
             );
-            if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+            if (isUrlOAuthCallback) {
               window.history.replaceState({}, document.title, window.location.pathname);
             }
-          } else {
-            await supabase.auth.signOut().catch(() => {});
           }
         }
       });

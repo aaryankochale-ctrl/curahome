@@ -4,6 +4,7 @@ import { ServiceType, DocumentItem } from '../../types';
 import { SERVICE_TYPE_CONFIG, DISTRICT_ZONES } from '../../data/mockData';
 import {
   X,
+  ArrowLeft,
   User,
   Award,
   FileCheck,
@@ -637,15 +638,20 @@ export const NurseRegistrationModal: React.FC<NurseRegistrationModalProps> = ({
         {/* Footer Navigation */}
         <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50">
           <div>
-            {step > 1 && (
-              <button
-                type="button"
-                onClick={() => setStep((s) => (s - 1) as 1 | 2)}
-                className="px-4 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 rounded-lg hover:bg-slate-200/60 transition-colors"
-              >
-                Back
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (step > 1) {
+                  setStep((s) => (s - 1) as 1 | 2);
+                } else {
+                  onClose();
+                }
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 rounded-lg bg-slate-200/70 hover:bg-slate-200 transition-colors"
+            >
+              <ArrowLeft size={14} />
+              <span>{step > 1 ? 'Back Step' : 'Back / Close'}</span>
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <button

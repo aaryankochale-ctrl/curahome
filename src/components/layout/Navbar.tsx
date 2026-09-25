@@ -7,6 +7,7 @@ import {
   ChevronDown,
   HeartPulse,
   LogOut,
+  ArrowLeft,
   Menu,
   X,
   Stethoscope,
@@ -198,10 +199,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Desktop Sign Out Button */}
             <button
               onClick={logout}
-              className="hidden sm:block p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-              title="Sign Out"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-rose-700 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 rounded-lg transition-all shadow-2xs"
+              title="Sign Out & Return to Login"
             >
-              <LogOut size={17} />
+              <LogOut size={14} className="text-slate-500 group-hover:text-rose-600" />
+              <span>Sign Out</span>
             </button>
           </div>
         </div>

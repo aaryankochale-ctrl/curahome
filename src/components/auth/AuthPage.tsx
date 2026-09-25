@@ -10,6 +10,7 @@ import {
   Mail,
   Phone,
   ArrowRight,
+  ArrowLeft,
   CheckCircle2,
   AlertCircle,
   Eye,
@@ -519,13 +520,14 @@ export const AuthPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-2 text-center">
+                  <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => setScreen('login')}
-                      className="text-xs text-slate-500 hover:text-slate-800 underline"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl transition-all shadow-2xs"
                     >
-                      ← Back to Sign In
+                      <ArrowLeft size={16} />
+                      <span>Back to Sign In / Sign Up</span>
                     </button>
                   </div>
                 </div>
@@ -534,6 +536,14 @@ export const AuthPage: React.FC = () => {
               {/* SCREEN 3: PATIENT ONBOARDING FORM */}
               {screen === 'patient_form' && (
                 <div>
+                  <button
+                    type="button"
+                    onClick={() => setScreen('role_choice')}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-800 hover:text-teal-900 mb-3"
+                  >
+                    <ArrowLeft size={14} /> Back to Role Selection
+                  </button>
+
                   <div className="mb-4">
                     <h2 className="text-lg font-bold text-slate-900">Complete Patient Profile</h2>
                     <p className="text-xs text-slate-500 mt-0.5">
@@ -602,9 +612,9 @@ export const AuthPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setScreen('role_choice')}
-                        className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 rounded-xl border border-slate-200"
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 rounded-xl border border-slate-300 bg-slate-100 hover:bg-slate-200 transition-all"
                       >
-                        Back
+                        <ArrowLeft size={14} /> Back
                       </button>
                       <button
                         type="submit"
