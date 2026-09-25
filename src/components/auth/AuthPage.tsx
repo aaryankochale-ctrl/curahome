@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { NurseRegistrationModal } from '../nurse/NurseRegistrationModal';
 import {
@@ -20,19 +20,12 @@ import {
   ChevronRight,
   Heart,
   RefreshCw,
-  Send,
-  KeyRound,
 } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
   const {
     signUpWithSupabase,
     signInWithSupabase,
-    resendVerificationEmail,
-    sendEmailOtp,
-    verifyEmailOtp,
-    verificationNotice,
-    setVerificationNotice,
     signInWithGoogle,
     login,
     createPatientAccount,
@@ -55,122 +48,6 @@ export const AuthPage: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Unverified Email State & Resend feedback
-  const [isUnverified, setIsUnverified] = useState(false);
-  const [unverifiedEmail, setUnverifiedEmail] = useState('');
-  const [isResending, setIsResending] = useState(false);
-  const [resendMsg, setResendMsg] = useState('');
-
-  // 6-Digit OTP Passcode State
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [otpTimer, setOtpTimer] = useState(60);
-  const [canResendOtp, setCanResendOtp] = useState(false);
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Timer countdown effect for OTP resend
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isUnverified && otpTimer > 0) {
-      interval = setInterval(() => {
-        setOtpTimer((prev) => {
-          if (prev <= 1) {
-            setCanResendOtp(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isUnverified, otpTimer]);
-
-  // Handle digit typing or 6-digit code pasting
-  const handleOtpChange = (index: number, value: string) => {
-    // Handle pasting full 6-digit code (e.g. 123456)
-    if (value.length > 1) {
-      const pasted = value.replace(/\D/g, '').slice(0, 6).split('');
-      if (pasted.length > 0) {
-        const newOtp = [...otpDigits];
-        pasted.forEach((char, i) => {
-          if (i < 6) newOtp[i] = char;
-        });
-        setOtpDigits(newOtp);
-        const lastIdx = Math.min(pasted.length - 1, 5);
-        otpInputRefs.current[lastIdx]?.focus();
-      }
-      return;
-    }
-
-    const cleanValue = value.replace(/\D/g, '');
-    const newOtp = [...otpDigits];
-    newOtp[index] = cleanValue;
-    setOtpDigits(newOtp);
-
-    // Auto-advance focus to next digit box
-    if (cleanValue && index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const token = otpDigits.join('');
-    if (token.length < 6) {
-      setErrorMsg('Please enter all 6 digits of the OTP code.');
-      return;
-    }
-
-    const targetEmail = unverifiedEmail || email.trim();
-    setIsVerifyingOtp(true);
-    setErrorMsg('');
-    setResendMsg('');
-
-    const res = await verifyEmailOtp(targetEmail, token);
-    setIsVerifyingOtp(false);
-
-    if (!res.success) {
-      setErrorMsg(res.error || 'Invalid 6-digit OTP code.');
-      return;
-    }
-
-    setIsUnverified(false);
-    if (res.isNewUser) {
-      setScreen('role_choice');
-    }
-  };
-
-  const handleResendOtp = async () => {
-    const targetEmail = unverifiedEmail || email.trim();
-    setIsResending(true);
-    setErrorMsg('');
-    setResendMsg('');
-
-    const res = await sendEmailOtp(targetEmail);
-    setIsResending(false);
-
-    if (res.success) {
-      setResendMsg(`A new 6-digit OTP code has been sent to ${targetEmail}!`);
-      setOtpTimer(60);
-      setCanResendOtp(false);
-    } else {
-      const fallbackRes = await resendVerificationEmail(targetEmail);
-      if (fallbackRes.success) {
-        setResendMsg(`Verification email resent to ${targetEmail}! Please check your inbox.`);
-        setOtpTimer(60);
-        setCanResendOtp(false);
-      } else {
-        setErrorMsg(fallbackRes.error || 'Failed to resend verification code.');
-      }
-    }
-  };
-
   // Patient Sign Up fields
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -191,7 +68,6 @@ export const AuthPage: React.FC = () => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
-    setResendMsg('');
 
     const targetEmail = email.trim();
     if (!targetEmail) {
@@ -224,25 +100,12 @@ export const AuthPage: React.FC = () => {
 
       if (!res.success) {
         setErrorMsg(res.error || 'Sign up failed.');
-        setIsUnverified(false);
         return;
       }
 
-      if (res.needsVerification) {
-        setIsUnverified(true);
-        setUnverifiedEmail(targetEmail);
-        setSuccessMsg(
-          'We sent a 6-digit verification code to your email inbox! Please enter it below.'
-        );
-        setPassword('');
-        setConfirmPassword('');
-        setOtpTimer(60);
-        setCanResendOtp(false);
-        return;
+      if (res.isNewUser) {
+        setScreen('role_choice');
       }
-
-      setSuccessMsg('Account created successfully!');
-      setScreen('role_choice');
       return;
     }
 
@@ -251,31 +114,14 @@ export const AuthPage: React.FC = () => {
     const res = await signInWithSupabase(targetEmail, password);
     setIsLoading(false);
 
-    if (res.needsVerification) {
-      setIsUnverified(true);
-      setUnverifiedEmail(targetEmail);
-      setErrorMsg(
-        'Please verify your email or enter the 6-digit OTP code sent to your inbox.'
-      );
-      setOtpTimer(60);
-      setCanResendOtp(false);
-      return;
-    }
-
     if (!res.success) {
       setErrorMsg(res.error || 'Invalid credentials.');
-      setIsUnverified(false);
       return;
     }
 
-    setIsUnverified(false);
     if (res.isNewUser) {
       setScreen('role_choice');
     }
-  };
-
-  const handleResendVerification = async () => {
-    await handleResendOtp();
   };
 
   const handlePatientFormSubmit = (e: React.FormEvent) => {
@@ -409,343 +255,210 @@ export const AuthPage: React.FC = () => {
               {/* SCREEN 1: SIGN IN / SIGN UP TABS */}
               {screen === 'login' && (
                 <div>
-                  {/* Verification Link Callback Notice */}
-                  {verificationNotice && (
-                    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-xs text-emerald-900 flex items-center justify-between gap-2 shadow-xs">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 size={18} className="shrink-0 text-emerald-600" />
-                        <span className="font-semibold">{verificationNotice}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setVerificationNotice(null)}
-                        className="text-[10px] text-emerald-700 font-bold hover:underline shrink-0"
-                      >
-                        Dismiss
-                      </button>
+                  {/* Mode Selector Tabs */}
+                  <div className="flex items-center p-1 bg-slate-100 rounded-xl mb-5 border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('signin');
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                        authMode === 'signin'
+                          ? 'bg-white text-teal-900 shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('signup');
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                        authMode === 'signup'
+                          ? 'bg-white text-teal-900 shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Create Account (Sign Up)
+                    </button>
+                  </div>
+
+                  <div className="mb-4">
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {authMode === 'signin' ? 'Sign In to CuraHome' : 'Create New Account'}
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {authMode === 'signin'
+                        ? 'Enter your email & password to access your healthcare portal.'
+                        : 'Sign up to connect with healthcare services or register as a nurse.'}
+                    </p>
+                  </div>
+
+                  {errorMsg && (
+                    <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+                      <AlertCircle size={16} className="shrink-0 text-rose-600" />
+                      <span>{errorMsg}</span>
                     </div>
                   )}
 
-                  {isUnverified ? (
-                    /* DEDICATED 6-DIGIT OTP VERIFICATION CARD */
-                    <div className="space-y-5 text-left">
-                      <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center border border-teal-200 shadow-xs">
-                        <KeyRound size={24} className="text-teal-700" />
-                      </div>
+                  {successMsg && (
+                    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                      <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                      <span>{successMsg}</span>
+                    </div>
+                  )}
 
+                  {/* Google OAuth Button */}
+                  <button
+                    type="button"
+                    onClick={() => signInWithGoogle()}
+                    className="w-full mb-4 py-2.5 px-4 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2.5"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                      />
+                    </svg>
+                    <span>Continue with Google</span>
+                  </button>
+
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-slate-200"></div>
+                    </div>
+                    <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
+                      <span className="bg-white px-3 text-slate-400 font-semibold">Or with Email</span>
+                    </div>
+                  </div>
+
+                  {/* Auth Form */}
+                  <form onSubmit={handleAuthSubmit} className="space-y-4">
+                    {authMode === 'signup' && (
                       <div>
-                        <div className="text-[11px] font-bold uppercase tracking-wider text-teal-800 mb-1 flex items-center gap-1.5">
-                          <ShieldCheck size={14} /> Email OTP Verification
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Full Legal Name
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            value={signUpName}
+                            onChange={(e) => setSignUpName(e.target.value)}
+                            placeholder="e.g. Marcus Bell"
+                            className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                          />
+                          <User size={16} className="absolute left-3 top-3 text-slate-400" />
                         </div>
-                        <h2 className="text-xl font-extrabold text-slate-900">
-                          Enter 6-Digit Passcode
-                        </h2>
-                        <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                          We sent a 6-digit OTP code to{' '}
-                          <strong className="text-slate-900 font-bold bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
-                            {unverifiedEmail || email}
-                          </strong>
-                          . Enter the passcode below or click the verification link in your email.
-                        </p>
                       </div>
+                    )}
 
-                      {resendMsg && (
-                        <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs flex items-center gap-2">
-                          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                          <span className="font-medium">{resendMsg}</span>
-                        </div>
-                      )}
-
-                      {errorMsg && (
-                        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
-                          <AlertCircle size={16} className="text-rose-600 shrink-0" />
-                          <span>{errorMsg}</span>
-                        </div>
-                      )}
-
-                      {/* 6-Digit OTP Form */}
-                      <form onSubmit={handleVerifyOtpSubmit} className="space-y-4 pt-1">
-                        <div className="flex items-center justify-between gap-1.5 sm:gap-2 max-w-xs mx-auto">
-                          {otpDigits.map((digit, index) => (
-                            <input
-                              key={index}
-                              ref={(el) => {
-                                otpInputRefs.current[index] = el;
-                              }}
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              maxLength={6}
-                              value={digit}
-                              onChange={(e) => handleOtpChange(index, e.target.value)}
-                              onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                              className="w-10 h-12 sm:w-11 sm:h-12 text-center text-lg font-bold text-slate-900 bg-slate-50 border-2 border-slate-300 rounded-xl focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-2 focus:ring-teal-500/20 transition-all"
-                            />
-                          ))}
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={isVerifyingOtp || otpDigits.join('').length < 6}
-                          className="w-full py-3 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
-                        >
-                          {isVerifyingOtp ? (
-                            <>
-                              <RefreshCw size={16} className="animate-spin text-white" />
-                              <span>Verifying Code...</span>
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 size={16} />
-                              <span>Verify & Activate Account</span>
-                            </>
-                          )}
-                        </button>
-                      </form>
-
-                      <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-                        <button
-                          type="button"
-                          onClick={handleResendOtp}
-                          disabled={isResending || !canResendOtp}
-                          className="text-xs font-bold text-teal-700 hover:text-teal-900 disabled:opacity-50 flex items-center gap-1.5"
-                        >
-                          <Send size={14} />
-                          {isResending ? (
-                            'Sending OTP...'
-                          ) : canResendOtp ? (
-                            'Resend 6-Digit Code'
-                          ) : (
-                            `Resend Code in ${otpTimer}s`
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsUnverified(false);
-                            setAuthMode('signin');
-                            setErrorMsg('');
-                            setResendMsg('');
-                            setSuccessMsg('');
-                          }}
-                          className="text-xs font-semibold text-slate-500 hover:text-slate-800 underline"
-                        >
-                          ← Back to Sign In
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    /* REGULAR AUTH TABS & FORM */
                     <div>
-                      {/* Mode Selector Tabs */}
-                      <div className="flex items-center p-1 bg-slate-100 rounded-xl mb-5 border border-slate-200">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAuthMode('signin');
-                            setErrorMsg('');
-                            setSuccessMsg('');
-                            setResendMsg('');
-                          }}
-                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                            authMode === 'signin'
-                              ? 'bg-white text-teal-900 shadow-xs'
-                              : 'text-slate-500 hover:text-slate-800'
-                          }`}
-                        >
-                          Sign In
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAuthMode('signup');
-                            setErrorMsg('');
-                            setSuccessMsg('');
-                            setResendMsg('');
-                          }}
-                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                            authMode === 'signup'
-                              ? 'bg-white text-teal-900 shadow-xs'
-                              : 'text-slate-500 hover:text-slate-800'
-                          }`}
-                        >
-                          Create Account (Sign Up)
-                        </button>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Email Address
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="name@example.com"
+                          className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                        />
+                        <Mail size={16} className="absolute left-3 top-3 text-slate-400" />
                       </div>
-
-                      <div className="mb-4">
-                        <h2 className="text-xl font-bold text-slate-900">
-                          {authMode === 'signin' ? 'Sign In to CuraHome' : 'Create New Account'}
-                        </h2>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {authMode === 'signin'
-                            ? 'Enter your verified email & password to access your healthcare portal.'
-                            : 'Sign up to connect with healthcare services or register as a nurse.'}
-                        </p>
-                      </div>
-
-                      {errorMsg && (
-                        <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
-                          <AlertCircle size={16} className="shrink-0 text-rose-600" />
-                          <span>{errorMsg}</span>
-                        </div>
-                      )}
-
-                      {successMsg && (
-                        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
-                          <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
-                          <span>{successMsg}</span>
-                        </div>
-                      )}
-
-                      {/* Google OAuth Button */}
-                      <button
-                        type="button"
-                        onClick={() => signInWithGoogle()}
-                        className="w-full mb-4 py-2.5 px-4 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2.5"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24">
-                          <path
-                            fill="#4285F4"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          />
-                          <path
-                            fill="#34A853"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          />
-                          <path
-                            fill="#FBBC05"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                          />
-                          <path
-                            fill="#EA4335"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                          />
-                        </svg>
-                        <span>Continue with Google</span>
-                      </button>
-
-                      <div className="relative my-4">
-                        <div className="absolute inset-0 flex items-center">
-                          <div className="w-full border-t border-slate-200"></div>
-                        </div>
-                        <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
-                          <span className="bg-white px-3 text-slate-400 font-semibold">Or with Email</span>
-                        </div>
-                      </div>
-
-                      {/* Auth Form */}
-                      <form onSubmit={handleAuthSubmit} className="space-y-4">
-                        {authMode === 'signup' && (
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Full Legal Name
-                            </label>
-                            <div className="relative">
-                              <input
-                                type="text"
-                                required
-                                value={signUpName}
-                                onChange={(e) => setSignUpName(e.target.value)}
-                                placeholder="e.g. Marcus Bell"
-                                className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                              />
-                              <User size={16} className="absolute left-3 top-3 text-slate-400" />
-                            </div>
-                          </div>
-                        )}
-
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">
-                            Email Address
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="email"
-                              required
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              placeholder="name@example.com"
-                              className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                            />
-                            <Mail size={16} className="absolute left-3 top-3 text-slate-400" />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">
-                            Password
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              required
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              placeholder="••••••••"
-                              className="w-full pl-9 pr-10 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                            />
-                            <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-                            >
-                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
-                          </div>
-                        </div>
-
-                        {authMode === 'signup' && (
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Confirm Password
-                            </label>
-                            <div className="relative">
-                              <input
-                                type={showPassword ? 'text' : 'password'}
-                                required
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="••••••••"
-                                className="w-full pl-9 pr-10 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                              />
-                              <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Admin Email Highlight Callout */}
-                        {isCurrentEmailAdmin && (
-                          <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-900 flex items-center gap-2">
-                            <ShieldAlert size={16} className="text-teal-700 shrink-0" />
-                            <div>
-                              <strong>Admin Email Identified:</strong> Access to Admin Operations Panel.
-                            </div>
-                          </div>
-                        )}
-
-                        <button
-                          type="submit"
-                          disabled={isLoading}
-                          className="w-full py-3 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
-                        >
-                          {isLoading ? (
-                            <>
-                              <RefreshCw size={16} className="animate-spin" />
-                              <span>Connecting to Supabase...</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>{authMode === 'signin' ? 'Sign In / Continue' : 'Sign Up Account'}</span>
-                              <ArrowRight size={16} />
-                            </>
-                          )}
-                        </button>
-                      </form>
                     </div>
-                  )}
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full pl-9 pr-10 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                        />
+                        <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {authMode === 'signup' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Confirm Password
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full pl-9 pr-10 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                          />
+                          <Lock size={16} className="absolute left-3 top-3 text-slate-400" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Admin Email Highlight Callout */}
+                    {isCurrentEmailAdmin && (
+                      <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-900 flex items-center gap-2">
+                        <ShieldAlert size={16} className="text-teal-700 shrink-0" />
+                        <div>
+                          <strong>Admin Email Identified:</strong> Access to Admin Operations Panel.
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-3 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <RefreshCw size={16} className="animate-spin" />
+                          <span>Connecting to Supabase...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{authMode === 'signin' ? 'Sign In / Continue' : 'Sign Up Account'}</span>
+                          <ArrowRight size={16} />
+                        </>
+                      )}
+                    </button>
+                  </form>
                 </div>
               )}
 

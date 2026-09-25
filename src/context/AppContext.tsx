@@ -109,7 +109,7 @@ interface AppContextType {
     email: string,
     password?: string,
     fullName?: string
-  ) => Promise<{ success: boolean; needsVerification?: boolean; error?: string }>;
+  ) => Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; needsVerification?: boolean; error?: string }>;
   signInWithSupabase: (
     email: string,
     password?: string
@@ -271,7 +271,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     email: string,
     password?: string,
     fullName?: string
-  ): Promise<{ success: boolean; needsVerification?: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
     setCurrentUserEmail(cleanEmail);
 
@@ -298,13 +298,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           error: 'An account with this email address already exists. Please sign in instead.',
         };
       }
-
-      // Immediately sign out temporary session so user cannot bypass verification
-      await supabase.auth.signOut().catch(() => {});
     }
 
-    // Always require real email verification link click before allowing login
-    return { success: true, needsVerification: true };
+    const res = loginWithEmail(cleanEmail, password);
+    return { success: true, isNewUser: res.isNewUser, role: res.role };
   };
 
   const signInWithSupabase = async (
@@ -314,7 +311,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     success: boolean;
     isNewUser?: boolean;
     role?: UserRole;
-    needsVerification?: boolean;
     error?: string;
   }> => {
     const cleanEmail = email.trim().toLowerCase();
@@ -331,18 +327,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
 
       if (error) {
-        const msg = error.message.toLowerCase();
-        if (
-          msg.includes('email not confirmed') ||
-          msg.includes('unverified') ||
-          (error as any).code === 'email_not_confirmed'
-        ) {
-          return {
-            success: false,
-            needsVerification: true,
-            error: 'Please verify your email before logging in. Check your inbox for the verification email.',
-          };
-        }
         return {
           success: false,
           error:
@@ -350,22 +334,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               ? 'Invalid email or password. Please check your credentials or click "Create Account".'
               : error.message,
         };
-      }
-
-      if (data.user) {
-        const isConfirmed = Boolean(
-          data.user.email_confirmed_at ||
-            data.user.confirmed_at ||
-            data.user.app_metadata?.provider === 'google'
-        );
-        if (!isConfirmed) {
-          await supabase.auth.signOut().catch(() => {});
-          return {
-            success: false,
-            needsVerification: true,
-            error: 'Please verify your email before logging in. Check your inbox for the verification email.',
-          };
-        }
       }
     } else {
       if (
