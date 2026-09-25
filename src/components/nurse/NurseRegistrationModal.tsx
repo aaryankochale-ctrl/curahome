@@ -38,7 +38,7 @@ export const NurseRegistrationModal: React.FC<NurseRegistrationModalProps> = ({
   const [phone, setPhone] = useState('');
   const [dob, setDob] = useState('1994-05-15');
   const [address, setAddress] = useState('');
-  const [city, setCity] = useState('Metro City');
+  const [city, setCity] = useState('Mumbai');
   const [districtZone, setDistrictZone] = useState(DISTRICT_ZONES[0]);
 
   // Emergency contact
@@ -50,7 +50,7 @@ export const NurseRegistrationModal: React.FC<NurseRegistrationModalProps> = ({
   const [qualification, setQualification] = useState('B.Sc Nursing');
   const [qualificationDetails, setQualificationDetails] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
-  const [issuingCouncil, setIssuingCouncil] = useState('State Board of Nursing & Midwifery Council');
+  const [issuingCouncil, setIssuingCouncil] = useState('Maharashtra Nursing Council / Indian Nursing Council');
   const [yearsOfExperience, setYearsOfExperience] = useState(4);
   const [selectedExpertise, setSelectedExpertise] = useState<ServiceType[]>([
     'wound_dressing',
@@ -290,7 +290,7 @@ export const NurseRegistrationModal: React.FC<NurseRegistrationModalProps> = ({
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
+                    placeholder="+91 98765 43210"
                     className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
@@ -373,7 +373,7 @@ export const NurseRegistrationModal: React.FC<NurseRegistrationModalProps> = ({
                       type="tel"
                       value={emergencyPhone}
                       onChange={(e) => setEmergencyPhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
+                      placeholder="+91 98765 43210"
                       className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200"
                     />
                   </div>

@@ -157,7 +157,7 @@ export const AuthPage: React.FC = () => {
             <ShieldCheck size={14} className="text-teal-700" /> 100% Board-Verified Nurses
           </span>
           <a
-            href="tel:+15550009999"
+            href="tel:+919876543210"
             className="text-teal-800 font-bold hover:text-teal-900 flex items-center gap-1 bg-teal-50 px-3 py-1.5 rounded-lg border border-teal-200"
           >
             <Phone size={13} /> 24/7 Clinical Support
@@ -591,7 +591,7 @@ export const AuthPage: React.FC = () => {
                           required
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
-                          placeholder="+1 (555) 000-0000"
+                          placeholder="+91 98765 43210"
                           className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600"
                         />
                       </div>

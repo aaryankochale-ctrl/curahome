@@ -257,7 +257,7 @@ export const NewServiceRequestModal: React.FC<NewServiceRequestModalProps> = ({
                       value={patientPhone}
                       onChange={(e) => setPatientPhone(e.target.value)}
                       required
-                      placeholder="+1 (555) 000-0000"
+                      placeholder="+91 98765 43210"
                       className="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 focus:outline-none focus:ring-1 focus:ring-teal-600 bg-white"
                     />
                   </div>
