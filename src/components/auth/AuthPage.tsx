@@ -318,8 +318,17 @@ export const AuthPage: React.FC = () => {
                   {/* Google OAuth Button */}
                   <button
                     type="button"
-                    onClick={() => signInWithGoogle()}
-                    className="w-full mb-4 py-2.5 px-4 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2.5"
+                    onClick={async () => {
+                      setErrorMsg('');
+                      setIsLoading(true);
+                      const res = await signInWithGoogle();
+                      setIsLoading(false);
+                      if (res && !res.success && res.error) {
+                        setErrorMsg(`Google Sign-In Error: ${res.error}`);
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="w-full mb-4 py-2.5 px-4 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 border border-slate-300 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2.5"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24">
                       <path

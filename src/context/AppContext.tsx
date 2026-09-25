@@ -128,7 +128,10 @@ interface AppContextType {
   ) => Promise<{ success: boolean; isNewUser?: boolean; role?: UserRole; error?: string }>;
   verificationNotice: string | null;
   setVerificationNotice: (notice: string | null) => void;
-  signInWithGoogle: (email?: string, name?: string) => Promise<void>;
+  signInWithGoogle: (
+    email?: string,
+    name?: string
+  ) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogleUser: (email: string, fullName?: string) => { isNewUser: boolean; role?: UserRole };
 
 
@@ -517,22 +520,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { isNewUser: true, role: 'patient' };
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (
+    customEmail?: string,
+    customName?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (customEmail) {
+      loginWithGoogleUser(customEmail, customName);
+      return { success: true };
+    }
+
     if (isSupabaseConfigured) {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-          queryParams: {
-            prompt: 'select_account',
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+            queryParams: {
+              prompt: 'select_account',
+            },
           },
-        },
-      });
-      if (error) {
-        console.error('Supabase Google OAuth Error:', error.message);
+        });
+        if (error) {
+          console.error('Supabase Google OAuth Error:', error.message);
+          return { success: false, error: error.message };
+        }
+        return { success: true };
+      } catch (err: any) {
+        console.error('Google OAuth Exception:', err);
+        return { success: false, error: err.message || 'Google OAuth failed' };
       }
     } else {
       loginWithGoogleUser('kochaleaaryan@gmail.com');
+      return { success: true };
     }
   };
 
