@@ -63,16 +63,13 @@ export const AuthPage: React.FC = () => {
   // Modals
   const [isNurseModalOpen, setIsNurseModalOpen] = useState(false);
 
-  // Selected quick demo account
-  const [selectedDemoEmail, setSelectedDemoEmail] = useState<string>('');
-
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
 
-    const targetEmail = selectedDemoEmail || email;
-    if (!targetEmail.trim()) {
+    const targetEmail = email.trim();
+    if (!targetEmail) {
       setErrorMsg('Please enter your Email Address.');
       return;
     }
@@ -132,7 +129,7 @@ export const AuthPage: React.FC = () => {
     login('patient', created.id);
   };
 
-  const isCurrentEmailAdmin = isAdminEmail(email || selectedDemoEmail);
+  const isCurrentEmailAdmin = isAdminEmail(email);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/40 text-slate-900 flex flex-col justify-between selection:bg-teal-100 selection:text-teal-900">
@@ -347,11 +344,8 @@ export const AuthPage: React.FC = () => {
                         <input
                           type="email"
                           required
-                          value={selectedDemoEmail || email}
-                          onChange={(e) => {
-                            setSelectedDemoEmail('');
-                            setEmail(e.target.value);
-                          }}
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
                           placeholder="name@example.com"
                           className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                         />
@@ -425,65 +419,6 @@ export const AuthPage: React.FC = () => {
                       )}
                     </button>
                   </form>
-
-                  {/* Demo Quick Sign-In Buttons */}
-                  <div className="mt-6 pt-5 border-t border-slate-200">
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2.5">
-                      Quick Demo Sign-In:
-                    </span>
-                    <div className="grid grid-cols-1 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedDemoEmail('eleanor.vance@example.com');
-                          setEmail('eleanor.vance@example.com');
-                          loginWithEmail('eleanor.vance@example.com');
-                        }}
-                        className="p-2.5 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50/50 bg-slate-50/60 text-left flex items-center justify-between text-xs transition-all"
-                      >
-                        <div className="flex items-center gap-2">
-                          <User size={14} className="text-teal-700" />
-                          <span className="font-bold text-slate-900">Eleanor Vance</span>
-                          <span className="text-[10px] text-slate-500">Patient</span>
-                        </div>
-                        <span className="text-[10px] text-teal-700 font-semibold">Sign In →</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedDemoEmail('sarah.jenkins@curahome.health');
-                          setEmail('sarah.jenkins@curahome.health');
-                          loginWithEmail('sarah.jenkins@curahome.health');
-                        }}
-                        className="p-2.5 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50/50 bg-slate-50/60 text-left flex items-center justify-between text-xs transition-all"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Stethoscope size={14} className="text-teal-700" />
-                          <span className="font-bold text-slate-900">Sarah Jenkins, RN</span>
-                          <span className="text-[10px] text-slate-500">Nurse</span>
-                        </div>
-                        <span className="text-[10px] text-teal-700 font-semibold">Sign In →</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedDemoEmail('aaryankochale@gmail.com');
-                          setEmail('aaryankochale@gmail.com');
-                          loginWithEmail('aaryankochale@gmail.com');
-                        }}
-                        className="p-2.5 rounded-xl border border-amber-200 bg-amber-50/40 hover:bg-amber-50 text-left flex items-center justify-between text-xs transition-all"
-                      >
-                        <div className="flex items-center gap-2">
-                          <ShieldAlert size={14} className="text-amber-700" />
-                          <span className="font-bold text-slate-900">aaryankochale@gmail.com</span>
-                          <span className="text-[10px] text-amber-800 font-semibold">Admin Panel</span>
-                        </div>
-                        <span className="text-[10px] text-amber-800 font-bold">Admin Login →</span>
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
 
